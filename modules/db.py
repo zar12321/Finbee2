@@ -106,3 +106,56 @@ def insert_user(nama, umur, pekerjaan, pemasukan_bulanan, target_tabungan):
             "pemasukan_bulanan": pemasukan_bulanan,
             "target_tabungan": target_tabungan
         })
+
+def insert_transaction(
+    user_id,
+    category_id,
+    tanggal_transaksi,
+    transaction_type,
+    tujuan_transaksi,
+    keterangan,
+    payment_method,
+    amount,
+    source="manual"
+):
+    engine = get_engine()
+
+    query = text("""
+        INSERT INTO transactions
+            (
+                user_id,
+                category_id,
+                tanggal_transaksi,
+                transaction_type,
+                tujuan_transaksi,
+                keterangan,
+                payment_method,
+                amount,
+                source
+            )
+        VALUES
+            (
+                :user_id,
+                :category_id,
+                :tanggal_transaksi,
+                :transaction_type,
+                :tujuan_transaksi,
+                :keterangan,
+                :payment_method,
+                :amount,
+                :source
+            )
+    """)
+
+    with engine.begin() as conn:
+        conn.execute(query, {
+            "user_id": user_id,
+            "category_id": category_id,
+            "tanggal_transaksi": tanggal_transaksi,
+            "transaction_type": transaction_type,
+            "tujuan_transaksi": tujuan_transaksi,
+            "keterangan": keterangan,
+            "payment_method": payment_method,
+            "amount": amount,
+            "source": source
+        })
