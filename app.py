@@ -21,6 +21,9 @@ from modules.analysis import (
     get_monthly_trend,
     get_top_transactions
 )
+
+from modules.prediction import predict_next_month_expense
+
 # =========================
 # SESSION STATE DEFAULT
 # =========================
@@ -54,14 +57,14 @@ st.session_state.main_page = main_page
 # TOMBOL KEMBALI
 # =========================
 
-def back_to_dashboard_home():
-    if st.button("⬅️ Kembali ke Dashboard"):
+def back_to_dashboard_home(key="back_dashboard"):
+    if st.button("⬅️ Kembali ke Dashboard", key=key):
         st.session_state.dashboard_page = "Home Dashboard"
         st.rerun()
 
 
-def back_to_insight_home():
-    if st.button("⬅️ Kembali ke Insight AI"):
+def back_to_insight_home(key="back_insight"):
+    if st.button("⬅️ Kembali ke Insight AI", key=key):
         st.session_state.insight_page = "Home Insight AI"
         st.rerun()
 
@@ -113,6 +116,15 @@ def dashboard_home():
         m3.metric("Total Pemasukan", f"Rp {summary['total_income']:,.0f}")
         m4.metric("Total Pengeluaran", f"Rp {summary['total_expense']:,.0f}")
         m5.metric("Saldo Bersih", f"Rp {summary['balance']:,.0f}")
+
+        prediction_result = predict_next_month_expense(transactions_df)
+
+        st.metric(
+            "Prediksi Pengeluaran Bulan Depan",
+            f"Rp {prediction_result['prediction']:,.0f}"
+        )
+
+        st.caption(f"Metode prediksi: {prediction_result['method']}")
 
         st.divider()
 
@@ -175,7 +187,7 @@ def dashboard_home():
 # =========================
 
 def page_profil_user():
-    back_to_dashboard_home()
+    back_to_dashboard_home(key="back_from_profile")
 
     st.title("👤 Profil User")
     st.write("Tambahkan user yang akan menggunakan aplikasi FinBee.")
@@ -237,7 +249,7 @@ def page_profil_user():
 # =========================
 
 def page_tambah_transaksi():
-    back_to_dashboard_home()
+    back_to_dashboard_home(key="back_from_transaction")
 
     st.title("➕ Tambah Transaksi")
     st.write("Tambahkan transaksi baru untuk user yang sudah terdaftar.")
@@ -353,14 +365,13 @@ def page_tambah_transaksi():
         st.error(f"Gagal memuat transaksi: {e}")
 
 def page_import_file():
-    back_to_dashboard_home()
+    back_to_dashboard_home(key="back_from_import")
     st.title("📁 Import File")
     st.info("Tahap berikutnya: membuat fitur upload CSV/Excel/PDF/TXT.")
 
 
 def page_analisis_prediksi():
-    back_to_dashboard_home()
-
+    back_to_dashboard_home(key="back_from_analysis")
     st.title("📊 Analisis & Prediksi")
 
     pilihan = st.selectbox(
@@ -407,45 +418,83 @@ def page_analisis_prediksi():
 
             payment_df = analyze_by_payment_method(transactions_df)
 
-            fig = px.bar(
-                payment_df,
-                x="payment_method",
-                y="amount",
-                title="Total Transaksi Berdasarkan Metode Pembayaran",
-                labels={
-                    "payment_method": "Metode Pembayaran",
-                    "amount": "Total Nominal"
-                }
-            )
+            if payment_df.empty:
+                st.info("Belum ada data metode pembayaran.")
+            else:
+                fig = px.bar(
+                    payment_df,
+                    x="payment_method",
+                    y="amount",
+                    title="Total Transaksi Berdasarkan Metode Pembayaran",
+                    labels={
+                        "payment_method": "Metode Pembayaran",
+                        "amount": "Total Nominal"
+                    }
+                )
 
-            st.plotly_chart(fig, use_container_width=True)
-            st.dataframe(payment_df, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True)
+                st.dataframe(payment_df, use_container_width=True)
 
         elif pilihan == "Tren Bulanan":
             st.subheader("Tren Bulanan")
 
             monthly_df = get_monthly_trend(transactions_df)
 
-            fig = px.line(
-                monthly_df,
-                x="tanggal_transaksi",
-                y="amount",
-                color="transaction_type",
-                markers=True,
-                title="Tren Bulanan Pemasukan dan Pengeluaran",
-                labels={
-                    "tanggal_transaksi": "Bulan",
-                    "amount": "Total Nominal",
-                    "transaction_type": "Tipe Transaksi"
-                }
-            )
+            if monthly_df.empty:
+                st.info("Belum ada data bulanan.")
+            else:
+                fig = px.line(
+                    monthly_df,
+                    x="tanggal_transaksi",
+                    y="amount",
+                    color="transaction_type",
+                    markers=True,
+                    title="Tren Bulanan Pemasukan dan Pengeluaran",
+                    labels={
+                        "tanggal_transaksi": "Bulan",
+                        "amount": "Total Nominal",
+                        "transaction_type": "Tipe Transaksi"
+                    }
+                )
 
-            st.plotly_chart(fig, use_container_width=True)
-            st.dataframe(monthly_df, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True)
+                st.dataframe(monthly_df, use_container_width=True)
 
         elif pilihan == "Prediksi Bulan Depan":
             st.subheader("Prediksi Bulan Depan")
-            st.info("Tahap berikutnya: kita buat model prediksi sederhana dengan moving average atau linear regression.")
+
+            prediction_result = predict_next_month_expense(transactions_df)
+
+            predicted_value = prediction_result["prediction"]
+            method = prediction_result["method"]
+            monthly_df = prediction_result["monthly_data"]
+            message = prediction_result["message"]
+
+            st.metric(
+                "Prediksi Pengeluaran Bulan Depan",
+                f"Rp {predicted_value:,.0f}"
+            )
+
+            st.write(f"Metode: {method}")
+            st.info(message)
+
+            if monthly_df.empty:
+                st.warning("Belum ada data bulanan yang dapat ditampilkan.")
+            else:
+                fig = px.line(
+                    monthly_df,
+                    x="bulan",
+                    y="total_pengeluaran",
+                    markers=True,
+                    title="Total Pengeluaran Bulanan",
+                    labels={
+                        "bulan": "Bulan",
+                        "total_pengeluaran": "Total Pengeluaran"
+                    }
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+                st.dataframe(monthly_df, use_container_width=True)
 
     except Exception as e:
         st.error(f"Gagal melakukan analisis: {e}")
@@ -477,19 +526,19 @@ def insight_home():
 
 
 def page_pengaturan():
-    back_to_insight_home()
+    back_to_insight_home(key="back_from_settings")
     st.title("⚙️ Pengaturan AI")
     st.info("Tahap berikutnya: input provider AI, model, dan API key user.")
 
 
 def page_chatbot_ai():
-    back_to_insight_home()
+    back_to_insight_home(key="back_from_chatbot")
     st.title("💬 Chatbot AI")
     st.info("Tahap berikutnya: membuat chatbot berbasis ringkasan transaksi.")
 
 
 def page_rekomendasi_ai():
-    back_to_insight_home()
+    back_to_insight_home(key="back_from_recommendation")
     st.title("🧠 Rekomendasi AI")
     st.info("Tahap berikutnya: membuat rekomendasi finansial berbasis data.")
 

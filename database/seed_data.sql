@@ -35,3 +35,14 @@ JOIN users u
 LEFT JOIN categories c
     ON t.category_id = c.category_id
 ORDER BY t.transaction_id;
+
+
+
+
+SELECT
+    DATE_TRUNC('month', tanggal_transaksi) AS bulan,
+    SUM(amount) AS total_pengeluaran
+FROM transactions
+WHERE transaction_type = 'expense'
+GROUP BY bulan
+ORDER BY bulan;
