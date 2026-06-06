@@ -13,7 +13,14 @@ st.set_page_config(
     page_icon="🐝",
     layout="wide"
 )
-
+import plotly.express as px
+from modules.analysis import (
+    get_summary_metrics,
+    analyze_by_category,
+    analyze_by_payment_method,
+    get_monthly_trend,
+    get_top_transactions
+)
 # =========================
 # SESSION STATE DEFAULT
 # =========================
@@ -65,7 +72,6 @@ def back_to_insight_home():
 
 def dashboard_home():
     st.title("🐝 FinBee Dashboard")
-    st.write("Pilih fitur yang ingin digunakan.")
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -91,29 +97,77 @@ def dashboard_home():
 
     st.divider()
 
-    st.subheader("Status Database")
-
-    try:
-        result = test_connection()
-        st.success(f"Koneksi PostgreSQL berhasil. Status: {result.status}")
-    except Exception as e:
-        st.error(f"Koneksi PostgreSQL gagal: {e}")
-
-    st.subheader("Ringkasan Data")
-
     try:
         users_df = load_users()
         categories_df = load_categories()
         transactions_df = load_transactions()
 
-        col_a, col_b, col_c = st.columns(3)
+        st.subheader("Ringkasan Data")
 
-        col_a.metric("Jumlah User", len(users_df))
-        col_b.metric("Jumlah Kategori", len(categories_df))
-        col_c.metric("Jumlah Transaksi", len(transactions_df))
+        summary = get_summary_metrics(transactions_df)
+
+        m1, m2, m3, m4, m5 = st.columns(5)
+
+        m1.metric("Jumlah User", len(users_df))
+        m2.metric("Jumlah Transaksi", summary["transaction_count"])
+        m3.metric("Total Pemasukan", f"Rp {summary['total_income']:,.0f}")
+        m4.metric("Total Pengeluaran", f"Rp {summary['total_expense']:,.0f}")
+        m5.metric("Saldo Bersih", f"Rp {summary['balance']:,.0f}")
+
+        st.divider()
+
+        if transactions_df.empty:
+            st.info("Belum ada transaksi. Tambahkan transaksi terlebih dahulu.")
+            return
+
+        col_left, col_right = st.columns(2)
+
+        with col_left:
+            st.subheader("Pengeluaran per Kategori")
+
+            category_df = analyze_by_category(transactions_df)
+
+            if category_df.empty:
+                st.info("Belum ada data pengeluaran.")
+            else:
+                fig = px.bar(
+                    category_df,
+                    x="category_name",
+                    y="amount",
+                    title="Total Pengeluaran Berdasarkan Kategori",
+                    labels={
+                        "category_name": "Kategori",
+                        "amount": "Total Pengeluaran"
+                    }
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+
+        with col_right:
+            st.subheader("Penggunaan Metode Pembayaran")
+
+            payment_df = analyze_by_payment_method(transactions_df)
+
+            if payment_df.empty:
+                st.info("Belum ada data metode pembayaran.")
+            else:
+                fig = px.pie(
+                    payment_df,
+                    names="payment_method",
+                    values="amount",
+                    title="Distribusi Transaksi Berdasarkan Metode Pembayaran"
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+
+        st.subheader("Top 5 Transaksi Terbesar")
+
+        top_df = get_top_transactions(transactions_df)
+
+        st.dataframe(top_df, use_container_width=True)
 
     except Exception as e:
-        st.error(f"Gagal memuat ringkasan data: {e}")
+        st.error(f"Gagal memuat dashboard: {e}")
 
 
 # =========================
@@ -306,6 +360,7 @@ def page_import_file():
 
 def page_analisis_prediksi():
     back_to_dashboard_home()
+
     st.title("📊 Analisis & Prediksi")
 
     pilihan = st.selectbox(
@@ -318,8 +373,82 @@ def page_analisis_prediksi():
         ]
     )
 
-    st.info(f"Fitur {pilihan} akan dibuat setelah transaksi berhasil disimpan.")
+    try:
+        transactions_df = load_transactions()
 
+        if transactions_df.empty:
+            st.info("Belum ada transaksi untuk dianalisis.")
+            return
+
+        if pilihan == "Analisis Kategori":
+            st.subheader("Analisis Kategori")
+
+            category_df = analyze_by_category(transactions_df)
+
+            if category_df.empty:
+                st.info("Belum ada data pengeluaran.")
+            else:
+                fig = px.bar(
+                    category_df,
+                    x="category_name",
+                    y="amount",
+                    title="Pengeluaran Berdasarkan Kategori",
+                    labels={
+                        "category_name": "Kategori",
+                        "amount": "Total Pengeluaran"
+                    }
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+                st.dataframe(category_df, use_container_width=True)
+
+        elif pilihan == "Analisis Metode Pembayaran":
+            st.subheader("Analisis Metode Pembayaran")
+
+            payment_df = analyze_by_payment_method(transactions_df)
+
+            fig = px.bar(
+                payment_df,
+                x="payment_method",
+                y="amount",
+                title="Total Transaksi Berdasarkan Metode Pembayaran",
+                labels={
+                    "payment_method": "Metode Pembayaran",
+                    "amount": "Total Nominal"
+                }
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+            st.dataframe(payment_df, use_container_width=True)
+
+        elif pilihan == "Tren Bulanan":
+            st.subheader("Tren Bulanan")
+
+            monthly_df = get_monthly_trend(transactions_df)
+
+            fig = px.line(
+                monthly_df,
+                x="tanggal_transaksi",
+                y="amount",
+                color="transaction_type",
+                markers=True,
+                title="Tren Bulanan Pemasukan dan Pengeluaran",
+                labels={
+                    "tanggal_transaksi": "Bulan",
+                    "amount": "Total Nominal",
+                    "transaction_type": "Tipe Transaksi"
+                }
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+            st.dataframe(monthly_df, use_container_width=True)
+
+        elif pilihan == "Prediksi Bulan Depan":
+            st.subheader("Prediksi Bulan Depan")
+            st.info("Tahap berikutnya: kita buat model prediksi sederhana dengan moving average atau linear regression.")
+
+    except Exception as e:
+        st.error(f"Gagal melakukan analisis: {e}")
 
 # =========================
 # INSIGHT AI HOME
