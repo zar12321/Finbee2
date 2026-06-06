@@ -10,3 +10,4 @@ INSERT INTO categories (category_name, category_type) VALUES
 ('Salary', 'income'),
 ('Allowance', 'income');
 
+SELECT * FROM categories;

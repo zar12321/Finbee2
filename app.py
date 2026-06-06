@@ -19,7 +19,6 @@ if st.button("Tes Koneksi PostgreSQL"):
 st.divider()
 
 st.subheader("Data Categories")
-
 try:
     categories_df = load_categories()
     st.dataframe(categories_df, use_container_width=True)
@@ -27,7 +26,6 @@ except Exception as e:
     st.error(f"Gagal load categories: {e}")
 
 st.subheader("Data Users")
-
 try:
     users_df = load_users()
     st.dataframe(users_df, use_container_width=True)
@@ -35,7 +33,6 @@ except Exception as e:
     st.error(f"Gagal load users: {e}")
 
 st.subheader("Data Transactions")
-
 try:
     transactions_df = load_transactions()
     st.dataframe(transactions_df, use_container_width=True)

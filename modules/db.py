@@ -5,8 +5,7 @@ from sqlalchemy import create_engine, text
 
 def get_engine():
     db_url = st.secrets["database"]["url"]
-    engine = create_engine(db_url)
-    return engine
+    return create_engine(db_url)
 
 
 def test_connection():
@@ -21,7 +20,7 @@ def load_users():
     engine = get_engine()
 
     query = """
-        SELECT 
+        SELECT
             user_id,
             nama,
             umur,
@@ -40,12 +39,12 @@ def load_categories():
     engine = get_engine()
 
     query = """
-        SELECT 
+        SELECT
             category_id,
             category_name,
             category_type
         FROM categories
-        ORDER BY category_name;
+        ORDER BY category_id;
     """
 
     return pd.read_sql(query, engine)
@@ -72,9 +71,9 @@ def load_transactions():
             t.source,
             t.created_at
         FROM transactions t
-        JOIN users u 
+        JOIN users u
             ON t.user_id = u.user_id
-        LEFT JOIN categories c 
+        LEFT JOIN categories c
             ON t.category_id = c.category_id
         ORDER BY t.tanggal_transaksi DESC;
     """
@@ -88,77 +87,3 @@ def load_transactions():
         df["amount"] = pd.to_numeric(df["amount"], errors="coerce")
 
     return df
-
-
-def insert_user(nama, umur, pekerjaan, pemasukan_bulanan, target_tabungan):
-    engine = get_engine()
-
-    query = text("""
-        INSERT INTO users 
-            (nama, umur, pekerjaan, pemasukan_bulanan, target_tabungan)
-        VALUES 
-            (:nama, :umur, :pekerjaan, :pemasukan_bulanan, :target_tabungan)
-    """)
-
-    with engine.begin() as conn:
-        conn.execute(query, {
-            "nama": nama,
-            "umur": umur,
-            "pekerjaan": pekerjaan,
-            "pemasukan_bulanan": pemasukan_bulanan,
-            "target_tabungan": target_tabungan
-        })
-
-
-def insert_transaction(
-    user_id,
-    category_id,
-    tanggal_transaksi,
-    transaction_type,
-    tujuan_transaksi,
-    keterangan,
-    payment_method,
-    amount,
-    source="manual"
-):
-    engine = get_engine()
-
-    query = text("""
-        INSERT INTO transactions
-            (
-                user_id,
-                category_id,
-                tanggal_transaksi,
-                transaction_type,
-                tujuan_transaksi,
-                keterangan,
-                payment_method,
-                amount,
-                source
-            )
-        VALUES
-            (
-                :user_id,
-                :category_id,
-                :tanggal_transaksi,
-                :transaction_type,
-                :tujuan_transaksi,
-                :keterangan,
-                :payment_method,
-                :amount,
-                :source
-            )
-    """)
-
-    with engine.begin() as conn:
-        conn.execute(query, {
-            "user_id": user_id,
-            "category_id": category_id,
-            "tanggal_transaksi": tanggal_transaksi,
-            "transaction_type": transaction_type,
-            "tujuan_transaksi": tujuan_transaksi,
-            "keterangan": keterangan,
-            "payment_method": payment_method,
-            "amount": amount,
-            "source": source
-        })
