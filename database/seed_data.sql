@@ -11,3 +11,6 @@ INSERT INTO categories (category_name, category_type) VALUES
 ('Allowance', 'income');
 
 SELECT * FROM categories;
+
+
+SELECT * FROM users;

@@ -87,3 +87,22 @@ def load_transactions():
         df["amount"] = pd.to_numeric(df["amount"], errors="coerce")
 
     return df
+
+def insert_user(nama, umur, pekerjaan, pemasukan_bulanan, target_tabungan):
+    engine = get_engine()
+
+    query = text("""
+        INSERT INTO users
+            (nama, umur, pekerjaan, pemasukan_bulanan, target_tabungan)
+        VALUES
+            (:nama, :umur, :pekerjaan, :pemasukan_bulanan, :target_tabungan)
+    """)
+
+    with engine.begin() as conn:
+        conn.execute(query, {
+            "nama": nama,
+            "umur": umur,
+            "pekerjaan": pekerjaan,
+            "pemasukan_bulanan": pemasukan_bulanan,
+            "target_tabungan": target_tabungan
+        })
