@@ -24,6 +24,20 @@ from modules.analysis import (
 
 from modules.prediction import predict_next_month_expense
 
+import pandas as pd
+
+from modules.db import (
+    test_connection,
+    load_users,
+    load_categories,
+    load_transactions,
+    insert_user,
+    insert_transaction,
+    insert_imported_transactions
+)
+
+from modules.import_file import auto_clean_financial_file
+
 # =========================
 # SESSION STATE DEFAULT
 # =========================
@@ -36,6 +50,12 @@ if "dashboard_page" not in st.session_state:
 
 if "insight_page" not in st.session_state:
     st.session_state.insight_page = "Home Insight AI"
+
+if "import_success" not in st.session_state:
+    st.session_state.import_success = False
+
+if "import_message" not in st.session_state:
+    st.session_state.import_message = ""
 
 
 # =========================
@@ -364,11 +384,270 @@ def page_tambah_transaksi():
     except Exception as e:
         st.error(f"Gagal memuat transaksi: {e}")
 
+def apply_column_mapping(df, column_mapping):
+    mapped_df = pd.DataFrame()
+
+    for target_col, source_col in column_mapping.items():
+        if source_col == "Tidak Ada":
+            mapped_df[target_col] = ""
+        else:
+            mapped_df[target_col] = df[source_col]
+
+    return mapped_df
+
 def page_import_file():
     back_to_dashboard_home(key="back_from_import")
-    st.title("📁 Import File")
-    st.info("Tahap berikutnya: membuat fitur upload CSV/Excel/PDF/TXT.")
 
+    st.title("📁 Import File")
+    st.write("Upload file transaksi dalam format CSV atau Excel. Sistem akan mencoba merapikan data secara otomatis.")
+
+    uploaded_file = st.file_uploader(
+        "Pilih file transaksi",
+        type=["csv", "xlsx"]
+    )
+
+    if "last_uploaded_file" not in st.session_state:
+        st.session_state.last_uploaded_file = None
+
+    if "import_success" not in st.session_state:
+        st.session_state.import_success = False
+
+    if "import_message" not in st.session_state:
+        st.session_state.import_message = ""
+
+    if uploaded_file is None:
+        st.info("Silakan upload file CSV atau Excel terlebih dahulu.")
+        return
+
+    if st.session_state.last_uploaded_file != uploaded_file.name:
+        st.session_state.last_uploaded_file = uploaded_file.name
+        st.session_state.import_success = False
+        st.session_state.import_message = ""
+
+    st.success(f"File berhasil diupload: {uploaded_file.name}")
+
+    try:
+        if uploaded_file.name.endswith(".csv"):
+            df_original = pd.read_csv(uploaded_file)
+        elif uploaded_file.name.endswith(".xlsx"):
+            df_original = pd.read_excel(uploaded_file)
+        else:
+            st.error("Format file belum didukung.")
+            return
+
+        with st.expander("Lihat Data Asli"):
+            st.dataframe(df_original, use_container_width=True)
+
+        # =========================
+        # AUTO CLEAN DATA
+        # =========================
+
+        try:
+            df_clean = auto_clean_financial_file(df_original)
+        except Exception as e:
+            st.error(f"Gagal melakukan auto-clean: {e}")
+            return
+
+        st.subheader("Data Setelah Auto Clean")
+        st.write("Periksa data berikut. Kamu bisa mengedit bagian yang salah atau kosong sebelum disimpan.")
+
+        categories_df = load_categories()
+        category_options = categories_df["category_name"].tolist()
+
+        payment_options = [
+            "Cash",
+            "Debit",
+            "E-Wallet",
+            "Bank Transfer",
+            "Credit Card",
+            "Unknown",
+            "Other"
+        ]
+
+        transaction_type_options = [
+            "expense",
+            "income"
+        ]
+
+        st.warning(
+            "Periksa data sebelum disimpan. Jangan biarkan kolom penting kosong, terutama tanggal, kategori, tipe transaksi, metode pembayaran, dan nominal."
+        )
+
+        edited_df = st.data_editor(
+            df_clean,
+            use_container_width=True,
+            num_rows="dynamic",
+            key="import_data_editor",
+            hide_index=True,
+            column_config={
+                "tanggal_transaksi": st.column_config.DateColumn(
+                    "Tanggal Transaksi",
+                    help="Tanggal terjadinya transaksi."
+                ),
+                "category_name": st.column_config.SelectboxColumn(
+                    "Kategori",
+                    help="Pilih kategori transaksi.",
+                    options=category_options,
+                    required=True
+                ),
+                "transaction_type": st.column_config.SelectboxColumn(
+                    "Tipe Transaksi",
+                    help="Pilih expense untuk pengeluaran atau income untuk pemasukan.",
+                    options=transaction_type_options,
+                    required=True
+                ),
+                "tujuan_transaksi": st.column_config.TextColumn(
+                    "Tujuan Transaksi",
+                    help="Ringkasan tujuan transaksi."
+                ),
+                "keterangan": st.column_config.TextColumn(
+                    "Keterangan",
+                    help="Detail transaksi."
+                ),
+                "payment_method": st.column_config.SelectboxColumn(
+                    "Metode Pembayaran",
+                    help="Pilih metode pembayaran.",
+                    options=payment_options,
+                    required=True
+                ),
+                "amount": st.column_config.NumberColumn(
+                    "Nominal",
+                    help="Jumlah nominal transaksi.",
+                    min_value=0,
+                    step=1000,
+                    required=True
+                )
+            }
+        )
+
+        st.subheader("Preview Data Final yang Akan Disimpan")
+        st.dataframe(edited_df, use_container_width=True)
+
+        # =========================
+        # VALIDASI DATA HASIL EDIT
+        # =========================
+
+        st.subheader("Validasi Data")
+        
+        required_not_empty_columns = [
+            "tanggal_transaksi",
+            "category_name",
+            "transaction_type",
+            "tujuan_transaksi",
+            "keterangan",
+            "payment_method",
+            "amount"
+        ]
+
+        empty_columns = []
+
+        for col in required_not_empty_columns:
+            if edited_df[col].isna().any() or (edited_df[col].astype(str).str.strip() == "").any():
+                empty_columns.append(col)
+
+        if len(empty_columns) > 0:
+            st.error("Masih ada kolom penting yang kosong. Lengkapi dulu sebelum menyimpan.")
+            st.write("Kolom yang masih memiliki nilai kosong:")
+            for col in empty_columns:
+                st.write(f"- {col}")
+            return
+
+        edited_df["tanggal_transaksi"] = pd.to_datetime(
+            edited_df["tanggal_transaksi"],
+            errors="coerce"
+        )
+
+        edited_df["amount"] = pd.to_numeric(
+            edited_df["amount"],
+            errors="coerce"
+        )
+
+        invalid_date_count = edited_df["tanggal_transaksi"].isna().sum()
+        invalid_amount_count = edited_df["amount"].isna().sum()
+
+        if invalid_date_count > 0:
+            st.error(f"Ada {invalid_date_count} baris dengan tanggal kosong atau tidak valid. Silakan perbaiki di tabel.")
+            return
+
+        if invalid_amount_count > 0:
+            st.error(f"Ada {invalid_amount_count} baris dengan nominal kosong atau tidak valid. Silakan perbaiki di tabel.")
+            return
+
+        allowed_types = ["expense", "income"]
+
+        invalid_type = edited_df[
+            ~edited_df["transaction_type"].isin(allowed_types)
+        ]
+
+        if not invalid_type.empty:
+            st.error("Ada transaction_type yang tidak valid. Gunakan hanya 'expense' atau 'income'.")
+            st.dataframe(invalid_type, use_container_width=True)
+            return
+
+        categories_df = load_categories()
+        valid_categories = categories_df["category_name"].tolist()
+
+        invalid_categories = edited_df[
+            ~edited_df["category_name"].isin(valid_categories)
+        ]
+
+        if not invalid_categories.empty:
+            st.error("Ada kategori yang tidak ditemukan di database.")
+            st.write("Kategori yang tersedia:")
+            st.write(valid_categories)
+            st.dataframe(invalid_categories, use_container_width=True)
+            return
+
+        st.success("Data valid dan siap disimpan.")
+
+        # =========================
+        # PILIH USER PEMILIK DATA
+        # =========================
+
+        users_df = load_users()
+
+        if users_df.empty:
+            st.warning("Belum ada user. Tambahkan user terlebih dahulu di menu Profil User.")
+            return
+
+        selected_user = st.selectbox(
+            "Pilih user pemilik transaksi",
+            users_df["nama"].tolist()
+        )
+
+        user_id = int(
+            users_df.loc[
+                users_df["nama"] == selected_user,
+                "user_id"
+            ].iloc[0]
+        )
+
+        st.divider()
+
+        if st.session_state.import_success:
+            st.success(st.session_state.import_message)
+            st.info("Data file ini sudah disimpan. Upload file baru jika ingin import data lain.")
+        else:
+            if st.button("Simpan Data Import ke Database"):
+                try:
+                    insert_imported_transactions(
+                        user_id=user_id,
+                        imported_df=edited_df
+                    )
+
+                    st.session_state.import_success = True
+                    st.session_state.import_message = "Data import berhasil disimpan ke database."
+
+                    st.cache_data.clear()
+
+                    st.success(st.session_state.import_message)
+                    st.info("Data sudah masuk ke database. Jangan tekan simpan ulang untuk file yang sama.")
+
+                except Exception as e:
+                    st.error(f"Gagal menyimpan data import: {e}")
+
+    except Exception as e:
+        st.error(f"Gagal membaca atau memproses file: {e}")
 
 def page_analisis_prediksi():
     back_to_dashboard_home(key="back_from_analysis")

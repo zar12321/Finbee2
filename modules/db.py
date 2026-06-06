@@ -3,6 +3,7 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 
 
+
 def get_engine():
     db_url = st.secrets["database"]["url"]
     return create_engine(db_url)
@@ -159,3 +160,59 @@ def insert_transaction(
             "amount": amount,
             "source": source
         })
+
+def insert_imported_transactions(user_id, imported_df):
+    engine = get_engine()
+
+    categories_df = load_categories()
+
+    category_map = dict(
+        zip(categories_df["category_name"], categories_df["category_id"])
+    )
+
+    query = text("""
+        INSERT INTO transactions
+            (
+                user_id,
+                category_id,
+                tanggal_transaksi,
+                transaction_type,
+                tujuan_transaksi,
+                keterangan,
+                payment_method,
+                amount,
+                source
+            )
+        VALUES
+            (
+                :user_id,
+                :category_id,
+                :tanggal_transaksi,
+                :transaction_type,
+                :tujuan_transaksi,
+                :keterangan,
+                :payment_method,
+                :amount,
+                :source
+            )
+    """)
+
+    with engine.begin() as conn:
+        for _, row in imported_df.iterrows():
+            category_name = row["category_name"]
+            category_id = category_map.get(category_name)
+
+            if category_id is None:
+                raise ValueError(f"Kategori tidak ditemukan di database: {category_name}")
+
+            conn.execute(query, {
+                "user_id": user_id,
+                "category_id": int(category_id),
+                "tanggal_transaksi": row["tanggal_transaksi"],
+                "transaction_type": row["transaction_type"],
+                "tujuan_transaksi": row["tujuan_transaksi"],
+                "keterangan": row["keterangan"],
+                "payment_method": row["payment_method"],
+                "amount": float(row["amount"]),
+                "source": "import_file"
+            })
