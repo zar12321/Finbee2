@@ -1,0 +1,12 @@
+streamlit
+pandas
+numpy
+sqlalchemy
+psycopg2-binary
+scikit-learn
+plotly
+google-genai
+openpyxl
+python-dotenv
+pypdf
+requests

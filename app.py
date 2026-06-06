@@ -38,6 +38,10 @@ from modules.db import (
 
 from modules.import_file import auto_clean_financial_file
 
+from modules.ai_provider import generate_ai_response, build_financial_summary
+
+from modules.prediction import predict_next_month_expense
+
 # =========================
 # SESSION STATE DEFAULT
 # =========================
@@ -57,7 +61,43 @@ if "import_success" not in st.session_state:
 if "import_message" not in st.session_state:
     st.session_state.import_message = ""
 
+#API MODEL AI
+AI_MODEL_OPTIONS = {
+    "Gemini": [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "Custom Model"
+    ],
+    "OpenRouter": [
+        "openai/gpt-4o-mini",
+        "meta-llama/llama-3.1-8b-instruct",
+        "google/gemini-flash-1.5",
+        "Custom Model"
+    ],
+    "Groq": [
+        "llama-3.1-8b-instant",
+        "llama-3.3-70b-versatile",
+        "Custom Model"
+    ],
+    "Ollama Local": [
+        "llama3.1",
+        "mistral",
+        "qwen2.5",
+        "Custom Model"
+    ]
+}
 
+if "ai_provider" not in st.session_state:
+    st.session_state.ai_provider = "Gemini"
+
+if "ai_model_name" not in st.session_state:
+    st.session_state.ai_model_name = AI_MODEL_OPTIONS[st.session_state.ai_provider]
+
+if "ai_api_key" not in st.session_state:
+    st.session_state.ai_api_key = ""
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 # =========================
 # SIDEBAR UTAMA
 # =========================
@@ -806,20 +846,293 @@ def insight_home():
 
 def page_pengaturan():
     back_to_insight_home(key="back_from_settings")
-    st.title("⚙️ Pengaturan AI")
-    st.info("Tahap berikutnya: input provider AI, model, dan API key user.")
 
+    st.title("⚙️ Pengaturan AI")
+    st.write(
+        "Atur provider AI, model, dan API key. "
+        "Data ini hanya disimpan sementara selama sesi aplikasi berjalan."
+    )
+
+    provider_options = [
+        "Gemini",
+        "OpenRouter",
+        "Groq",
+        "Ollama Local"
+    ]
+
+    previous_provider = st.session_state.ai_provider
+
+    provider = st.selectbox(
+        "Pilih Provider AI",
+        provider_options,
+        index=provider_options.index(st.session_state.ai_provider),
+        key="provider_selectbox"
+    )
+
+    # Jika provider berubah, model otomatis diganti ke default provider baru
+    if provider != previous_provider:
+        st.session_state.ai_provider = provider
+        st.session_state.ai_model_name = AI_MODEL_OPTIONS[provider][0]
+        st.session_state.ai_api_key = ""
+        st.rerun()
+
+    model_options = AI_MODEL_OPTIONS[provider]
+
+    if st.session_state.ai_model_name in model_options:
+        model_index = model_options.index(st.session_state.ai_model_name)
+    else:
+        model_index = 0
+
+    selected_model_option = st.selectbox(
+        "Pilih Model AI",
+        model_options,
+        index=model_index
+    )
+
+    if selected_model_option == "Custom Model":
+        model_name = st.text_input(
+            "Masukkan Nama Model Custom",
+            value=st.session_state.ai_model_name
+            if st.session_state.ai_model_name != "Custom Model"
+            else "",
+            placeholder="Contoh: provider/model-name"
+        )
+    else:
+        model_name = selected_model_option
+
+    # =========================
+    # INPUT API KEY
+    # =========================
+
+    if provider == "Ollama Local":
+        api_key = ""
+        st.info(
+            "Ollama Local tidak membutuhkan API key, "
+            "tetapi Ollama harus berjalan di komputer lokal."
+        )
+    else:
+        api_key = st.text_input(
+            "API Key",
+            value=st.session_state.ai_api_key,
+            type="password",
+            placeholder="Masukkan API key milik user"
+        )
+
+    if st.button("Simpan Pengaturan AI"):
+        if provider != "Ollama Local" and api_key.strip() == "":
+            st.warning("API key belum diisi.")
+            return
+
+        if model_name.strip() == "":
+            st.warning("Nama model belum diisi.")
+            return
+
+        st.session_state.ai_provider = provider
+        st.session_state.ai_model_name = model_name
+        st.session_state.ai_api_key = api_key
+
+        st.success("Pengaturan AI berhasil disimpan sementara.")
+
+    st.divider()
+
+    st.subheader("Status Pengaturan Saat Ini")
+
+    st.write(f"Provider aktif: {st.session_state.ai_provider}")
+    st.write(f"Model aktif: {st.session_state.ai_model_name}")
+
+    if st.session_state.ai_provider == "Ollama Local":
+        st.info("Mode lokal aktif. API key tidak diperlukan.")
+    elif st.session_state.ai_api_key.strip() == "":
+        st.warning("API key belum diisi.")
+    else:
+        st.success("API key sudah diisi.")
+
+    st.divider()
+
+    st.subheader("Tes Koneksi AI")
+
+    test_prompt = "Jawab singkat dalam Bahasa Indonesia: koneksi AI berhasil."
+
+    if st.button("Tes AI"):
+        try:
+            if provider != "Ollama Local" and api_key.strip() == "":
+                st.warning("API key belum diisi.")
+                return
+
+            if model_name.strip() == "":
+                st.warning("Nama model belum diisi.")
+                return
+
+            response = generate_ai_response(
+                provider=provider,
+                api_key=api_key,
+                model_name=model_name,
+                prompt=test_prompt
+            )
+
+            st.success("AI berhasil merespons.")
+            st.write(response)
+
+        except Exception as e:
+            st.error(f"Gagal menghubungi AI: {e}")
 
 def page_chatbot_ai():
     back_to_insight_home(key="back_from_chatbot")
+
     st.title("💬 Chatbot AI")
-    st.info("Tahap berikutnya: membuat chatbot berbasis ringkasan transaksi.")
+    st.write("Tanyakan kondisi keuangan berdasarkan data transaksi yang sudah tersimpan.")
+
+    try:
+        transactions_df = load_transactions()
+
+        if transactions_df.empty:
+            st.info("Belum ada transaksi. Tambahkan transaksi atau import file terlebih dahulu.")
+            return
+
+        prediction_result = predict_next_month_expense(transactions_df)
+
+        financial_summary = build_financial_summary(
+            transactions_df,
+            prediction_result
+        )
+
+        with st.expander("Lihat ringkasan data yang diberikan ke chatbot"):
+            st.text(financial_summary)
+
+        for chat in st.session_state.chat_history:
+            with st.chat_message(chat["role"]):
+                st.write(chat["content"])
+
+        user_question = st.chat_input("Tanyakan sesuatu tentang keuanganmu...")
+
+        if user_question:
+            st.session_state.chat_history.append({
+                "role": "user",
+                "content": user_question
+            })
+
+            with st.chat_message("user"):
+                st.write(user_question)
+
+            provider = st.session_state.ai_provider
+            model_name = st.session_state.ai_model_name
+            api_key = st.session_state.ai_api_key
+
+            if provider != "Ollama Local" and api_key.strip() == "":
+                answer = "API key belum diisi. Isi dulu di menu Pengaturan AI."
+                with st.chat_message("assistant"):
+                    st.warning(answer)
+
+                st.session_state.chat_history.append({
+                    "role": "assistant",
+                    "content": answer
+                })
+                return
+
+            prompt = f"""
+Kamu adalah FinBee, chatbot finansial pribadi berbasis data.
+
+Aturan:
+- Jawab hanya berdasarkan ringkasan data yang diberikan.
+- Jangan mengarang transaksi atau angka baru.
+- Jika data tidak cukup, katakan data belum cukup.
+- Gunakan Bahasa Indonesia yang jelas dan praktis.
+- Jangan memberi saran investasi berisiko tinggi.
+
+Ringkasan data user:
+{financial_summary}
+
+Pertanyaan user:
+{user_question}
+"""
+
+            with st.chat_message("assistant"):
+                try:
+                    with st.spinner("AI sedang menjawab..."):
+                        answer = generate_ai_response(
+                            provider=provider,
+                            api_key=api_key,
+                            model_name=model_name,
+                            prompt=prompt
+                        )
+
+                    st.write(answer)
+
+                except Exception as e:
+                    answer = f"Gagal menghubungi AI: {e}"
+                    st.error(answer)
+
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": answer
+            })
+
+    except Exception as e:
+        st.error(f"Gagal menjalankan chatbot AI: {e}")
 
 
 def page_rekomendasi_ai():
     back_to_insight_home(key="back_from_recommendation")
+
     st.title("🧠 Rekomendasi AI")
-    st.info("Tahap berikutnya: membuat rekomendasi finansial berbasis data.")
+    st.write("AI akan memberi rekomendasi berdasarkan ringkasan transaksi yang sudah tersimpan di database.")
+
+    try:
+        transactions_df = load_transactions()
+
+        if transactions_df.empty:
+            st.info("Belum ada transaksi. Tambahkan transaksi atau import file terlebih dahulu.")
+            return
+
+        prediction_result = predict_next_month_expense(transactions_df)
+
+        financial_summary = build_financial_summary(
+            transactions_df,
+            prediction_result
+        )
+
+        with st.expander("Lihat ringkasan data yang diberikan ke AI"):
+            st.text(financial_summary)
+
+        prompt = f"""
+Kamu adalah FinBee, asisten finansial pribadi berbasis data.
+
+Tugas:
+1. Buat kesimpulan kondisi keuangan user.
+2. Jelaskan kategori pengeluaran terbesar.
+3. Berikan rekomendasi penghematan yang realistis.
+4. Berikan saran prioritas tindakan untuk minggu depan.
+5. Jangan mengarang angka di luar ringkasan data.
+6. Jika data belum cukup, katakan data belum cukup.
+
+Gunakan Bahasa Indonesia yang jelas dan praktis.
+
+Data keuangan:
+{financial_summary}
+"""
+
+        if st.button("Buat Rekomendasi AI"):
+            provider = st.session_state.ai_provider
+            model_name = st.session_state.ai_model_name
+            api_key = st.session_state.ai_api_key
+
+            if provider != "Ollama Local" and api_key.strip() == "":
+                st.warning("API key belum diisi. Isi dulu di menu Pengaturan AI.")
+                return
+
+            with st.spinner("AI sedang membuat rekomendasi..."):
+                response = generate_ai_response(
+                    provider=provider,
+                    api_key=api_key,
+                    model_name=model_name,
+                    prompt=prompt
+                )
+
+            st.subheader("Hasil Rekomendasi AI")
+            st.write(response)
+
+    except Exception as e:
+        st.error(f"Gagal membuat rekomendasi AI: {e}")
 
 
 # =========================
