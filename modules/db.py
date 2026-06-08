@@ -6,6 +6,17 @@ import bcrypt
 
 
 def get_engine():
+    if "database" not in st.secrets:
+        raise KeyError(
+            "Secrets belum memiliki key [database]. "
+            "Tambahkan [database] dengan url di Streamlit Cloud Secrets."
+        )
+
+    if "url" not in st.secrets["database"]:
+        raise KeyError(
+            "Secrets [database] belum memiliki key url."
+        )
+
     db_url = st.secrets["database"]["url"]
     return create_engine(db_url)
 
