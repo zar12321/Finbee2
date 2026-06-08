@@ -1,19 +1,13 @@
 import streamlit as st
-from modules.db import (
-    test_connection,
-    load_users,
-    load_categories,
-    load_transactions,
-    insert_user,
-    insert_transaction
-)
+import pandas as pd
+import plotly.express as px
 
 st.set_page_config(
     page_title="FinBee",
     page_icon="🐝",
     layout="wide"
 )
-import plotly.express as px
+
 from modules.analysis import (
     get_summary_metrics,
     analyze_by_category,
@@ -23,23 +17,20 @@ from modules.analysis import (
 )
 
 from modules.prediction import predict_next_month_expense
-
-import pandas as pd
-
 from modules.db import (
-    test_connection,
-    load_users,
     load_categories,
     load_transactions,
-    insert_user,
     insert_transaction,
-    insert_imported_transactions
+    insert_imported_transactions,
+    register_user,
+    login_user_by_identifier,
+    reset_user_password,
+    save_monthly_plan,
+    load_monthly_plan
 )
 
 from modules.import_file import auto_clean_financial_file
-
 from modules.ai_provider import generate_ai_response, build_financial_summary
-
 from modules.prediction import predict_next_month_expense
 
 # =========================
@@ -60,6 +51,32 @@ if "import_success" not in st.session_state:
 
 if "import_message" not in st.session_state:
     st.session_state.import_message = ""
+
+if "is_logged_in" not in st.session_state:
+    st.session_state.is_logged_in = False
+
+if "user_id" not in st.session_state:
+    st.session_state.user_id = None
+
+if "user_name" not in st.session_state:
+    st.session_state.user_name = None
+
+if "login_identifier" not in st.session_state:
+    st.session_state.login_identifier = None
+
+if "login_type" not in st.session_state:
+    st.session_state.login_type = None
+
+if "auth_page" not in st.session_state:
+    st.session_state.auth_page = "Login"
+
+valid_auth_pages = ["Login", "Register", "Reset Password"]
+
+if st.session_state.auth_page not in valid_auth_pages:
+    st.session_state.auth_page = "Login"
+
+if "monthly_plan_message" not in st.session_state:
+    st.session_state.monthly_plan_message = ""
 
 #API MODEL AI
 AI_MODEL_OPTIONS = {
@@ -91,69 +108,288 @@ if "ai_provider" not in st.session_state:
     st.session_state.ai_provider = "Gemini"
 
 if "ai_model_name" not in st.session_state:
-    st.session_state.ai_model_name = AI_MODEL_OPTIONS[st.session_state.ai_provider]
+    st.session_state.ai_model_name = AI_MODEL_OPTIONS[st.session_state.ai_provider][0]
 
 if "ai_api_key" not in st.session_state:
     st.session_state.ai_api_key = ""
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-# =========================
-# SIDEBAR UTAMA
-# =========================
 
-st.sidebar.title("🐝 FinBee")
+def page_login():
+    st.title("🐝 FinBee Login")
+    st.write("Masuk menggunakan email atau username yang sudah didaftarkan.")
 
-main_page = st.sidebar.radio(
-    "Menu Utama",
-    ["Dashboard", "Insight AI"],
-    index=["Dashboard", "Insight AI"].index(st.session_state.main_page)
-)
+    with st.form("form_login"):
+        login_identifier = st.text_input("Email atau Username")
+        password = st.text_input("Password", type="password")
 
-st.session_state.main_page = main_page
+        st.caption("Tekan Enter atau klik tombol Login untuk masuk.")
 
+        submitted = st.form_submit_button("Login")
+
+        if submitted:
+            login_identifier = login_identifier.strip().lower()
+
+            if login_identifier == "" or password.strip() == "":
+                st.warning("Email/username dan password wajib diisi.")
+                return
+
+            try:
+                user = login_user_by_identifier(login_identifier,password)
+
+                if user is None:
+                    st.error("Email/username atau password salah.")
+                    return
+
+                st.session_state.is_logged_in = True
+                st.session_state.user_id = int(user.user_id)
+                st.session_state.user_name = user.nama
+                st.session_state.login_identifier = user.login_identifier
+                st.session_state.login_type = user.login_type
+
+                st.session_state.main_page = "Dashboard"
+                st.session_state.dashboard_page = "Home Dashboard"
+                st.session_state.insight_page = "Home Insight AI"
+
+                st.success("Login berhasil.")
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"Gagal login: {e}")
+
+    st.divider()
+
+    if st.button("Lupa Password?"):
+        st.session_state.auth_page = "Reset Password"
+        st.rerun()
+
+    if st.button("Belum punya akun? Daftar"):
+        st.session_state.auth_page = "Register"
+        st.rerun()
+
+def page_register():
+    st.title("🐝 Daftar Akun FinBee")
+    st.write("Buat akun baru untuk menyimpan dan menganalisis data keuanganmu.")
+
+    with st.form("form_register"):
+        nama = st.text_input("Nama Lengkap")
+        login_identifier = st.text_input("Email atau Username")
+        password = st.text_input("Password", type="password")
+        confirm_password = st.text_input("Konfirmasi Password", type="password")
+
+        umur = st.number_input(
+            "Umur",
+            min_value=0,
+            max_value=120,
+            step=1
+        )
+
+        pekerjaan = st.text_input("Pekerjaan")
+
+        submitted = st.form_submit_button("Daftar")
+
+        if submitted:
+            nama = nama.strip()
+            login_identifier = login_identifier.strip().lower()
+
+            if nama == "":
+                st.warning("Nama wajib diisi.")
+                return
+
+            if login_identifier == "":
+                st.warning("Email atau username wajib diisi.")
+                return
+
+            if password.strip() == "":
+                st.warning("Password wajib diisi.")
+                return
+
+            if password != confirm_password:
+                st.warning("Konfirmasi password tidak cocok.")
+                return
+
+            if "@" in login_identifier:
+                login_type = "email"
+            else:
+                login_type = "username"
+
+            try:
+                register_user(
+                    nama=nama,
+                    login_identifier=login_identifier,
+                    login_type=login_type,
+                    password=password,
+                    umur=umur,
+                    pekerjaan=pekerjaan
+                )
+
+                st.success("Akun berhasil dibuat. Silakan login.")
+                st.session_state.auth_page = "Login"
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"Gagal membuat akun: {e}")
+
+    st.divider()
+
+    if st.button("Sudah punya akun? Login"):
+        st.session_state.auth_page = "Login"
+        st.rerun()
+
+def page_reset_password():
+    st.title("🔐 Reset Password FinBee")
+    st.write("Masukkan email atau username akun, lalu buat password baru.")
+
+    with st.form("form_reset_password"):
+        login_identifier = st.text_input("Email atau Username")
+        new_password = st.text_input("Password Baru", type="password")
+        confirm_password = st.text_input("Konfirmasi Password Baru", type="password")
+
+        submitted = st.form_submit_button("Reset Password")
+
+        if submitted:
+            login_identifier = login_identifier.strip().lower()
+
+            if login_identifier == "":
+                st.warning("Email atau username wajib diisi.")
+                return
+
+            if new_password.strip() == "":
+                st.warning("Password baru wajib diisi.")
+                return
+
+            if new_password != confirm_password:
+                st.warning("Konfirmasi password tidak cocok.")
+                return
+
+            try:
+                affected_rows = reset_user_password(
+                    login_identifier=login_identifier,
+                    new_password=new_password
+                )
+
+                if affected_rows == 0:
+                    st.error("Akun tidak ditemukan.")
+                    return
+
+                st.success("Password berhasil direset. Silakan login dengan password baru.")
+                st.session_state.auth_page = "Login"
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"Gagal reset password: {e}")
+
+    st.divider()
+
+    if st.button("Kembali ke Login"):
+        st.session_state.auth_page = "Login"
+        st.rerun()
 
 # =========================
 # TOMBOL KEMBALI
 # =========================
-
 def back_to_dashboard_home(key="back_dashboard"):
     if st.button("⬅️ Kembali ke Dashboard", key=key):
         st.session_state.dashboard_page = "Home Dashboard"
         st.rerun()
-
 
 def back_to_insight_home(key="back_insight"):
     if st.button("⬅️ Kembali ke Insight AI", key=key):
         st.session_state.insight_page = "Home Insight AI"
         st.rerun()
 
+#PROFIL SAYA
+def page_profil_saya():
+    st.title("👤 Profil Saya")
+    st.divider()
+
+    st.subheader("Rencana Bulanan")
+    
+    if st.session_state.monthly_plan_message != "":
+        st.success(st.session_state.monthly_plan_message)
+
+    today = pd.Timestamp.today()
+    bulan = int(today.month)
+    tahun = int(today.year)
+
+    try:
+        existing_plan = load_monthly_plan(
+            user_id=st.session_state.user_id,
+            bulan=int(bulan),
+            tahun=int(tahun)
+        )
+
+        if existing_plan is not None:
+            default_pemasukan = float(existing_plan.pemasukan_bulanan)
+            default_target = float(existing_plan.target_bulanan)
+        else:
+            default_pemasukan = 0.0
+            default_target = 0.0
+
+    except Exception as e:
+        st.error(f"Gagal memuat rencana bulanan: {e}")
+        return
+
+    target_bulanan = money_input(
+        "Pengeluaran Maksimal",
+        key=f"target_bulanan_{bulan}_{int(tahun)}",
+        default_value=int(default_target)
+    )
+
+    if st.button("Simpan Rencana Bulanan"):
+        if target_bulanan is None:
+            st.warning("Target bulanan tidak valid.")
+            return
+
+        if target_bulanan <= 0:
+            st.warning("Target bulanan harus lebih dari 0.")
+            return
+
+        try:
+            save_monthly_plan(
+                user_id=st.session_state.user_id,
+                bulan=bulan,
+                tahun=tahun,
+                target_bulanan=target_bulanan
+            )
+
+            st.session_state.monthly_plan_message = "Rencana bulanan berhasil disimpan."
+
+            key_target = f"pengeluaran_maksimal{bulan}_{tahun}"
+
+            if key_target in st.session_state:
+                del st.session_state[key_target]
+
+            st.rerun()
+
+        except Exception as e:
+            st.error(f"Gagal menyimpan rencana bulanan: {e}")
+
+    st.info(
+        "Pengeluaran Maksimal disimpan berdasarkan bulan dan tahun, "
+        "jadi nilainya bisa diubah setiap bulan."
+    )
 
 # =========================
 # DASHBOARD HOME
 # =========================
-
 def dashboard_home():
     st.title("🐝 FinBee Dashboard")
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("👤 Profil User", use_container_width=True):
-            st.session_state.dashboard_page = "Profil User"
-            st.rerun()
-
-    with col2:
         if st.button("➕ Tambah Transaksi", use_container_width=True):
             st.session_state.dashboard_page = "Tambah Transaksi"
             st.rerun()
 
-    with col3:
+    with col2:
         if st.button("📁 Import File", use_container_width=True):
             st.session_state.dashboard_page = "Import File"
             st.rerun()
 
-    with col4:
+    with col3:
         if st.button("📊 Analisis & Prediksi", use_container_width=True):
             st.session_state.dashboard_page = "Analisis & Prediksi"
             st.rerun()
@@ -161,21 +397,82 @@ def dashboard_home():
     st.divider()
 
     try:
-        users_df = load_users()
         categories_df = load_categories()
         transactions_df = load_transactions()
 
+        if st.session_state.user_id is not None:
+            transactions_df = transactions_df[
+            transactions_df["user_id"] == st.session_state.user_id
+    ]
+       
         st.subheader("Ringkasan Data")
 
         summary = get_summary_metrics(transactions_df)
 
+        today = pd.Timestamp.today()
+        current_month = int(today.month)
+        current_year = int(today.year)
+
+        monthly_plan = load_monthly_plan(
+            user_id=st.session_state.user_id,
+            bulan=current_month,
+            tahun=current_year
+        )
+
+        if monthly_plan is not None:
+            pemasukan_bulanan = float(monthly_plan.pemasukan_bulanan)
+            target_bulanan = float(monthly_plan.target_bulanan)
+        else:
+            pemasukan_bulanan = 0.0
+            target_bulanan = 0.0
+
         m1, m2, m3, m4, m5 = st.columns(5)
 
-        m1.metric("Jumlah User", len(users_df))
-        m2.metric("Jumlah Transaksi", summary["transaction_count"])
-        m3.metric("Total Pemasukan", f"Rp {summary['total_income']:,.0f}")
-        m4.metric("Total Pengeluaran", f"Rp {summary['total_expense']:,.0f}")
-        m5.metric("Saldo Bersih", f"Rp {summary['balance']:,.0f}")
+        m1.metric("Jumlah Transaksi", summary["transaction_count"])
+        m2.metric("Total Pemasukan", f"Rp {summary['total_income']:,.0f}")
+        m3.metric("Total Pengeluaran", f"Rp {summary['total_expense']:,.0f}")
+        m4.metric("Saldo Bersih", f"Rp {summary['balance']:,.0f}")
+
+        if target_bulanan > 0:
+            m5.metric("Pengeluaran Maksimal", f"Rp {target_bulanan:,.0f}")
+        else:
+            m5.metric("Pengeluaran Maksimal", "Belum diatur")
+
+        st.subheader("Pengeluaran Maksimal Bulanan")
+
+        if target_bulanan <= 0:
+            st.warning("Pengeluaran Maksimal belum diatur. Atur di menu Profil Saya.")
+        else:
+            total_pengeluaran = summary["total_expense"]
+            persentase_target = (total_pengeluaran / target_bulanan) * 100
+
+            sisa_target = target_bulanan - total_pengeluaran
+
+            if persentase_target < 80:
+                st.success(
+                    f"Aman. Pengeluaran saat ini Rp {total_pengeluaran:,.0f}, "
+                    f"masih tersisa Rp {sisa_target:,.0f} dari Pengeluaran Maksimal."
+                )
+
+            elif persentase_target <= 100:
+                st.warning(
+                    f"Waspada. Pengeluaran sudah mencapai {persentase_target:.1f}% "
+                    f"Sisa Pengeluaran Maksimal Rp {sisa_target:,.0f}."
+                )
+
+            else:
+                kelebihan = total_pengeluaran - target_bulanan
+
+                if persentase_target <= 110:
+                    st.error(
+                        f"Melebihi sedikit. Pengeluaran melewati target sebesar "
+                        f"Rp {kelebihan:,.0f}. Perlu dikendalikan."
+                    )
+                else:
+                    st.error(
+                        f"Melebihi target. Pengeluaran sudah mencapai {persentase_target:.1f}% "
+                        f"dari Pengeluaran Maksimal dan melewati batas sebesar Rp {kelebihan:,.0f}."
+                    )
 
         prediction_result = predict_next_month_expense(transactions_df)
 
@@ -183,8 +480,6 @@ def dashboard_home():
             "Prediksi Pengeluaran Bulan Depan",
             f"Rp {prediction_result['prediction']:,.0f}"
         )
-
-        st.caption(f"Metode prediksi: {prediction_result['method']}")
 
         st.divider()
 
@@ -237,189 +532,160 @@ def dashboard_home():
         top_df = get_top_transactions(transactions_df)
 
         st.dataframe(top_df, use_container_width=True)
-
+    
     except Exception as e:
         st.error(f"Gagal memuat dashboard: {e}")
 
+def money_input(label, key, default_value=0):
+    default_text = f"{int(default_value):,}" if default_value else ""
 
-# =========================
-# HALAMAN PROFIL USER
-# =========================
+    value_text = st.text_input(
+        label,
+        value=default_text,
+        key=key,
+        placeholder="Contoh: 10000"
+    )
 
-def page_profil_user():
-    back_to_dashboard_home(key="back_from_profile")
+    cleaned_value = value_text.replace(",", "").strip()
 
-    st.title("👤 Profil User")
-    st.write("Tambahkan user yang akan menggunakan aplikasi FinBee.")
+    if cleaned_value == "":
+        return 0
 
-    with st.form("form_tambah_user"):
-        nama = st.text_input("Nama User")
-        umur = st.number_input("Umur", min_value=0, max_value=120, step=1)
-        pekerjaan = st.text_input("Pekerjaan")
-        pemasukan_bulanan = st.number_input(
-            "Pemasukan Bulanan",
-            min_value=0.0,
-            step=10000.0
-        )
-        target_tabungan = st.number_input(
-            "Target Tabungan",
-            min_value=0.0,
-            step=10000.0
-        )
+    if not cleaned_value.isdigit():
+        st.warning(f"{label} hanya boleh berisi angka.")
+        return None
 
-        submitted = st.form_submit_button("Simpan User")
-
-        if submitted:
-            if nama.strip() == "":
-                st.warning("Nama user tidak boleh kosong.")
-            else:
-                try:
-                    insert_user(
-                        nama=nama,
-                        umur=umur,
-                        pekerjaan=pekerjaan,
-                        pemasukan_bulanan=pemasukan_bulanan,
-                        target_tabungan=target_tabungan
-                    )
-
-                    st.success("User berhasil ditambahkan.")
-                    st.rerun()
-
-                except Exception as e:
-                    st.error(f"Gagal menambahkan user: {e}")
-
-    st.divider()
-
-    st.subheader("Daftar User")
-
-    try:
-        users_df = load_users()
-
-        if users_df.empty:
-            st.info("Belum ada user.")
-        else:
-            st.dataframe(users_df, use_container_width=True)
-
-    except Exception as e:
-        st.error(f"Gagal memuat data user: {e}")
-
+    return int(cleaned_value)
 
 # =========================
 # HALAMAN PLACEHOLDER
 # =========================
-
 def page_tambah_transaksi():
     back_to_dashboard_home(key="back_from_transaction")
 
     st.title("➕ Tambah Transaksi")
-    st.write("Tambahkan transaksi baru untuk user yang sudah terdaftar.")
+
+    user_id = st.session_state.user_id
 
     try:
-        users_df = load_users()
         categories_df = load_categories()
     except Exception as e:
-        st.error(f"Gagal memuat data user atau kategori: {e}")
-        return
-
-    if users_df.empty:
-        st.warning("Belum ada user. Tambahkan user terlebih dahulu di menu Profil User.")
+        st.error(f"Gagal memuat kategori: {e}")
         return
 
     if categories_df.empty:
         st.warning("Belum ada kategori. Jalankan seed_data.sql terlebih dahulu.")
         return
 
-    with st.form("form_tambah_transaksi"):
-        selected_user = st.selectbox(
-            "Pilih User",
-            users_df["nama"].tolist()
+    # =========================
+    # INPUT TRANSAKSI
+    # tidak memakai st.form agar bagian Other bisa langsung tampil
+    # =========================
+    selected_category = st.selectbox(
+        "Pilih Kategori",
+        categories_df["category_name"].tolist()
+    )
+
+    tanggal_transaksi = st.date_input("Tanggal Transaksi")
+
+    transaction_type = st.selectbox(
+        "Tipe Transaksi",
+        ["expense", "income"]
+    )
+
+    payment_method_option = st.selectbox(
+        "Metode Pembayaran",
+        ["Cash", "Debit", "E-Wallet", "Bank Transfer", "Credit Card", "Other"]
+    )
+
+    if payment_method_option == "Other":
+        custom_payment_method = st.text_input(
+            "Masukkan Metode Pembayaran Lainnya",
+            placeholder="Contoh: QRIS, GoPay, Dana, ShopeePay, PayLater"
         )
 
-        selected_category = st.selectbox(
-            "Pilih Kategori",
-            categories_df["category_name"].tolist()
-        )
+        payment_method = custom_payment_method.strip()
+    else:
+        payment_method = payment_method_option
 
-        tanggal_transaksi = st.date_input("Tanggal Transaksi")
+    tujuan_transaksi = st.text_input(
+        "Tujuan Transaksi",
+        placeholder="Contoh: makan siang, bayar kos, gaji bulanan"
+    )
 
-        transaction_type = st.selectbox(
-            "Tipe Transaksi",
-            ["expense", "income"]
-        )
+    keterangan = st.text_area(
+        "Keterangan",
+        placeholder="Contoh: beli nasi ayam di kantin"
+    )
 
-        payment_method = st.selectbox(
-            "Metode Pembayaran",
-            ["Cash", "Debit", "E-Wallet", "Bank Transfer", "Credit Card", "Other"]
-        )
+    amount = money_input(
+        "Nominal",
+        key="manual_transaction_amount"
+    )
 
-        tujuan_transaksi = st.text_input(
-            "Tujuan Transaksi",
-            placeholder="Contoh: makan siang, bayar kos, gaji bulanan"
-        )
+    if st.button("Simpan Transaksi"):
+        if amount is None:
+            st.warning("Nominal transaksi tidak valid.")
+            return
 
-        keterangan = st.text_area(
-            "Keterangan",
-            placeholder="Contoh: beli nasi ayam di kantin"
-        )
+        if amount <= 0:
+            st.warning("Nominal transaksi harus lebih dari 0.")
+            return
 
-        amount = st.number_input(
-            "Nominal",
-            min_value=0.0,
-            step=1000.0
-        )
+        if tujuan_transaksi.strip() == "":
+            st.warning("Tujuan transaksi tidak boleh kosong.")
+            return
 
-        submitted = st.form_submit_button("Simpan Transaksi")
+        if payment_method == "":
+            st.warning("Metode pembayaran lainnya tidak boleh kosong.")
+            return
 
-        if submitted:
-            if amount <= 0:
-                st.warning("Nominal transaksi harus lebih dari 0.")
-            elif tujuan_transaksi.strip() == "":
-                st.warning("Tujuan transaksi tidak boleh kosong.")
-            else:
-                try:
-                    user_id = int(
-                        users_df.loc[
-                            users_df["nama"] == selected_user,
-                            "user_id"
-                        ].iloc[0]
-                    )
+        try:
+            category_id = int(
+                categories_df.loc[
+                    categories_df["category_name"] == selected_category,
+                    "category_id"
+                ].iloc[0]
+            )
 
-                    category_id = int(
-                        categories_df.loc[
-                            categories_df["category_name"] == selected_category,
-                            "category_id"
-                        ].iloc[0]
-                    )
+            insert_transaction(
+                user_id=user_id,
+                category_id=category_id,
+                tanggal_transaksi=tanggal_transaksi,
+                transaction_type=transaction_type,
+                tujuan_transaksi=tujuan_transaksi,
+                keterangan=keterangan,
+                payment_method=payment_method,
+                amount=amount,
+                source="manual"
+            )
 
-                    insert_transaction(
-                        user_id=user_id,
-                        category_id=category_id,
-                        tanggal_transaksi=tanggal_transaksi,
-                        transaction_type=transaction_type,
-                        tujuan_transaksi=tujuan_transaksi,
-                        keterangan=keterangan,
-                        payment_method=payment_method,
-                        amount=amount,
-                        source="manual"
-                    )
+            st.success("Transaksi berhasil disimpan.")
+            st.cache_data.clear()
 
-                    st.success("Transaksi berhasil disimpan.")
-                    st.rerun()
+            if "manual_transaction_amount" in st.session_state:
+                del st.session_state.manual_transaction_amount
 
-                except Exception as e:
-                    st.error(f"Gagal menyimpan transaksi: {e}")
+            st.rerun()
+
+        except Exception as e:
+            st.error(f"Gagal menyimpan transaksi: {e}")
 
     st.divider()
 
-    st.subheader("Daftar Transaksi")
+    st.subheader("Daftar Transaksi Saya")
 
     try:
         transactions_df = load_transactions()
 
-        if transactions_df.empty:
-            st.info("Belum ada transaksi.")
+        user_transactions = transactions_df[
+            transactions_df["user_id"] == st.session_state.user_id
+        ]
+
+        if user_transactions.empty:
+            st.info("Belum ada transaksi untuk akun ini.")
         else:
-            st.dataframe(transactions_df, use_container_width=True)
+            st.dataframe(user_transactions, use_container_width=True)
 
     except Exception as e:
         st.error(f"Gagal memuat transaksi: {e}")
@@ -437,6 +703,8 @@ def apply_column_mapping(df, column_mapping):
 
 def page_import_file():
     back_to_dashboard_home(key="back_from_import")
+
+    user_id = st.session_state.user_id
 
     st.title("📁 Import File")
     st.write("Upload file transaksi dalam format CSV atau Excel. Sistem akan mencoba merapikan data secara otomatis.")
@@ -492,17 +760,7 @@ def page_import_file():
         st.write("Periksa data berikut. Kamu bisa mengedit bagian yang salah atau kosong sebelum disimpan.")
 
         categories_df = load_categories()
-        category_options = categories_df["category_name"].tolist()
-
-        payment_options = [
-            "Cash",
-            "Debit",
-            "E-Wallet",
-            "Bank Transfer",
-            "Credit Card",
-            "Unknown",
-            "Other"
-        ]
+        category_options = sorted(categories_df["category_name"].dropna().unique().tolist())
 
         transaction_type_options = [
             "expense",
@@ -524,6 +782,10 @@ def page_import_file():
                     "Tanggal Transaksi",
                     help="Tanggal terjadinya transaksi."
                 ),
+                "raw_category": st.column_config.TextColumn(
+                    "Kategori Asli",
+                    help="Kategori asli dari file user. Kolom ini disimpan sebagai jejak data asli."
+                ),
                 "category_name": st.column_config.SelectboxColumn(
                     "Kategori",
                     help="Pilih kategori transaksi.",
@@ -544,10 +806,9 @@ def page_import_file():
                     "Keterangan",
                     help="Detail transaksi."
                 ),
-                "payment_method": st.column_config.SelectboxColumn(
+                "payment_method": st.column_config.TextColumn(
                     "Metode Pembayaran",
-                    help="Pilih metode pembayaran.",
-                    options=payment_options,
+                    help="Isi metode pembayaran. Contoh: Cash, Debit, E-Wallet, QRIS, GoPay, Dana.",
                     required=True
                 ),
                 "amount": st.column_config.NumberColumn(
@@ -632,36 +893,22 @@ def page_import_file():
         ]
 
         if not invalid_categories.empty:
-            st.error("Ada kategori yang tidak ditemukan di database.")
-            st.write("Kategori yang tersedia:")
-            st.write(valid_categories)
-            st.dataframe(invalid_categories, use_container_width=True)
-            return
+            st.warning("Ada kategori yang tidak sesuai. Sistem akan mengubahnya menjadi 'Other'.")
 
+            if "Other" not in valid_categories:
+                st.error("Kategori 'Other' tidak ditemukan di database. Jalankan seed_data.sql terlebih dahulu.")
+                return
+
+            edited_df.loc[
+                ~edited_df["category_name"].isin(valid_categories),
+                "category_name"
+            ]= "Other"
+           
         st.success("Data valid dan siap disimpan.")
 
         # =========================
         # PILIH USER PEMILIK DATA
         # =========================
-
-        users_df = load_users()
-
-        if users_df.empty:
-            st.warning("Belum ada user. Tambahkan user terlebih dahulu di menu Profil User.")
-            return
-
-        selected_user = st.selectbox(
-            "Pilih user pemilik transaksi",
-            users_df["nama"].tolist()
-        )
-
-        user_id = int(
-            users_df.loc[
-                users_df["nama"] == selected_user,
-                "user_id"
-            ].iloc[0]
-        )
-
         st.divider()
 
         if st.session_state.import_success:
@@ -692,7 +939,6 @@ def page_import_file():
 def page_analisis_prediksi():
     back_to_dashboard_home(key="back_from_analysis")
     st.title("📊 Analisis & Prediksi")
-
     pilihan = st.selectbox(
         "Pilih jenis analisis",
         [
@@ -705,6 +951,10 @@ def page_analisis_prediksi():
 
     try:
         transactions_df = load_transactions()
+        
+        transactions_df = transactions_df[
+            transactions_df["user_id"] == st.session_state.user_id
+        ]
 
         if transactions_df.empty:
             st.info("Belum ada transaksi untuk dianalisis.")
@@ -821,7 +1071,6 @@ def page_analisis_prediksi():
 # =========================
 # INSIGHT AI HOME
 # =========================
-
 def insight_home():
     st.title("🤖 Insight AI")
     st.write("Pilih fitur AI yang ingin digunakan.")
@@ -842,7 +1091,6 @@ def insight_home():
         if st.button("🧠 Rekomendasi AI", use_container_width=True):
             st.session_state.insight_page = "Rekomendasi AI"
             st.rerun()
-
 
 def page_pengaturan():
     back_to_insight_home(key="back_from_settings")
@@ -979,11 +1227,18 @@ def page_pengaturan():
 def page_chatbot_ai():
     back_to_insight_home(key="back_from_chatbot")
 
+
     st.title("💬 Chatbot AI")
     st.write("Tanyakan kondisi keuangan berdasarkan data transaksi yang sudah tersimpan.")
 
+
     try:
         transactions_df = load_transactions()
+
+
+        transactions_df = transactions_df[
+            transactions_df["user_id"] == st.session_state.user_id
+        ]
 
         if transactions_df.empty:
             st.info("Belum ada transaksi. Tambahkan transaksi atau import file terlebih dahulu.")
@@ -1070,15 +1325,20 @@ Pertanyaan user:
     except Exception as e:
         st.error(f"Gagal menjalankan chatbot AI: {e}")
 
-
 def page_rekomendasi_ai():
     back_to_insight_home(key="back_from_recommendation")
 
+
     st.title("🧠 Rekomendasi AI")
     st.write("AI akan memberi rekomendasi berdasarkan ringkasan transaksi yang sudah tersimpan di database.")
+    
 
     try:
         transactions_df = load_transactions()
+    
+        transactions_df = transactions_df[
+            transactions_df["user_id"] == st.session_state.user_id
+        ]
 
         if transactions_df.empty:
             st.info("Belum ada transaksi. Tambahkan transaksi atau import file terlebih dahulu.")
@@ -1134,18 +1394,63 @@ Data keuangan:
     except Exception as e:
         st.error(f"Gagal membuat rekomendasi AI: {e}")
 
-
 # =========================
 # ROUTING UTAMA
 # =========================
 
-if st.session_state.main_page == "Dashboard":
+if not st.session_state.is_logged_in:
+    if st.session_state.auth_page == "Login":
+        page_login()
 
+    elif st.session_state.auth_page == "Register":
+        page_register()
+
+    elif st.session_state.auth_page == "Reset Password":
+        page_reset_password()
+
+    st.stop()
+
+# =========================
+# SIDEBAR UTAMA
+# =========================
+
+st.sidebar.title("🐝 FinBee")
+st.sidebar.write(f"Login sebagai: {st.session_state.user_name}")
+
+main_page_options = ["Profil Saya", "Dashboard", "Insight AI"]
+
+main_page = st.sidebar.radio(
+    "Menu Utama",
+    main_page_options,
+    index=main_page_options.index(st.session_state.main_page)
+    if st.session_state.main_page in main_page_options
+    else 0
+)
+
+st.session_state.main_page = main_page
+
+if st.sidebar.button("Logout"):
+    st.session_state.is_logged_in = False
+    st.session_state.user_id = None
+    st.session_state.user_name = None
+    st.session_state.login_identifier = None
+    st.session_state.login_type = None
+    st.session_state.chat_history = []
+
+    st.session_state.auth_page = "Login"
+    st.session_state.main_page = "Dashboard"
+    st.session_state.dashboard_page = "Home Dashboard"
+    st.session_state.insight_page = "Home Insight AI"
+
+    st.rerun()
+
+#ROUTING
+if st.session_state.main_page == "Profil Saya":
+    page_profil_saya()
+
+elif st.session_state.main_page == "Dashboard":
     if st.session_state.dashboard_page == "Home Dashboard":
         dashboard_home()
-
-    elif st.session_state.dashboard_page == "Profil User":
-        page_profil_user()
 
     elif st.session_state.dashboard_page == "Tambah Transaksi":
         page_tambah_transaksi()
@@ -1156,9 +1461,7 @@ if st.session_state.main_page == "Dashboard":
     elif st.session_state.dashboard_page == "Analisis & Prediksi":
         page_analisis_prediksi()
 
-
 elif st.session_state.main_page == "Insight AI":
-
     if st.session_state.insight_page == "Home Insight AI":
         insight_home()
 

@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from sqlalchemy import create_engine, text
+import bcrypt
 
 
 
@@ -24,10 +25,10 @@ def load_users():
         SELECT
             user_id,
             nama,
+            login_identifier,
+            login_type,
             umur,
             pekerjaan,
-            pemasukan_bulanan,
-            target_tabungan,
             created_at
         FROM users
         ORDER BY user_id;
@@ -45,11 +46,10 @@ def load_categories():
             category_name,
             category_type
         FROM categories
-        ORDER BY category_id;
+        ORDER BY category_type, category_name;
     """
 
     return pd.read_sql(query, engine)
-
 
 def load_transactions():
     engine = get_engine()
@@ -61,6 +61,7 @@ def load_transactions():
             u.nama AS user_name,
             t.category_id,
             c.category_name,
+            t.raw_category,
             t.import_id,
             t.tanggal_input,
             t.tanggal_transaksi,
@@ -82,31 +83,10 @@ def load_transactions():
     df = pd.read_sql(query, engine)
 
     if not df.empty:
-        df["tanggal_input"] = pd.to_datetime(df["tanggal_input"])
         df["tanggal_transaksi"] = pd.to_datetime(df["tanggal_transaksi"])
-        df["created_at"] = pd.to_datetime(df["created_at"])
         df["amount"] = pd.to_numeric(df["amount"], errors="coerce")
 
     return df
-
-def insert_user(nama, umur, pekerjaan, pemasukan_bulanan, target_tabungan):
-    engine = get_engine()
-
-    query = text("""
-        INSERT INTO users
-            (nama, umur, pekerjaan, pemasukan_bulanan, target_tabungan)
-        VALUES
-            (:nama, :umur, :pekerjaan, :pemasukan_bulanan, :target_tabungan)
-    """)
-
-    with engine.begin() as conn:
-        conn.execute(query, {
-            "nama": nama,
-            "umur": umur,
-            "pekerjaan": pekerjaan,
-            "pemasukan_bulanan": pemasukan_bulanan,
-            "target_tabungan": target_tabungan
-        })
 
 def insert_transaction(
     user_id,
@@ -117,7 +97,8 @@ def insert_transaction(
     keterangan,
     payment_method,
     amount,
-    source="manual"
+    source="manual",
+    raw_category=None
 ):
     engine = get_engine()
 
@@ -132,7 +113,8 @@ def insert_transaction(
                 keterangan,
                 payment_method,
                 amount,
-                source
+                source,
+                raw_category
             )
         VALUES
             (
@@ -144,7 +126,8 @@ def insert_transaction(
                 :keterangan,
                 :payment_method,
                 :amount,
-                :source
+                :source,
+                :raw_category
             )
     """)
 
@@ -158,7 +141,8 @@ def insert_transaction(
             "keterangan": keterangan,
             "payment_method": payment_method,
             "amount": amount,
-            "source": source
+            "source": source,
+            "raw_category": raw_category
         })
 
 def insert_imported_transactions(user_id, imported_df):
@@ -181,7 +165,8 @@ def insert_imported_transactions(user_id, imported_df):
                 keterangan,
                 payment_method,
                 amount,
-                source
+                source,
+                raw_category
             )
         VALUES
             (
@@ -193,17 +178,25 @@ def insert_imported_transactions(user_id, imported_df):
                 :keterangan,
                 :payment_method,
                 :amount,
-                :source
+                :source,
+                :raw_category
             )
     """)
 
     with engine.begin() as conn:
         for _, row in imported_df.iterrows():
-            category_name = row["category_name"]
+            category_name = str(row["category_name"]).strip()
             category_id = category_map.get(category_name)
 
             if category_id is None:
-                raise ValueError(f"Kategori tidak ditemukan di database: {category_name}")
+                category_name = "Other"
+                category_id = category_map.get("Other")
+
+            if category_id is None:
+                raise ValueError("Kategori 'Other' tidak ditemukan di database.")
+
+            raw_category = row.get("raw_category", category_name)
+            raw_category = str(raw_category).strip()
 
             conn.execute(query, {
                 "user_id": user_id,
@@ -214,5 +207,195 @@ def insert_imported_transactions(user_id, imported_df):
                 "keterangan": row["keterangan"],
                 "payment_method": row["payment_method"],
                 "amount": float(row["amount"]),
-                "source": "import_file"
+                "source": "import_file",
+                "raw_category": raw_category
             })
+
+def hash_password(password):
+    password_bytes = password.encode("utf-8")
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password_bytes, salt)
+    return hashed_password.decode("utf-8")
+
+
+def check_password(password, password_hash):
+    password_bytes = password.encode("utf-8")
+    hash_bytes = password_hash.encode("utf-8")
+    return bcrypt.checkpw(password_bytes, hash_bytes)
+
+
+def register_user(
+    nama,
+    login_identifier,
+    login_type,
+    password,
+    umur,
+    pekerjaan
+):
+    engine = get_engine()
+
+    login_identifier = login_identifier.strip().lower()
+    password_hash = hash_password(password)
+
+    query = text("""
+        INSERT INTO users
+            (
+                nama,
+                login_identifier,
+                login_type,
+                password_hash,
+                umur,
+                pekerjaan
+            )
+        VALUES
+            (
+                :nama,
+                :login_identifier,
+                :login_type,
+                :password_hash,
+                :umur,
+                :pekerjaan
+            )
+        RETURNING user_id, nama, login_identifier, login_type
+    """)
+
+    with engine.begin() as conn:
+        result = conn.execute(query, {
+            "nama": nama,
+            "login_identifier": login_identifier,
+            "login_type": login_type,
+            "password_hash": password_hash,
+            "umur": umur,
+            "pekerjaan": pekerjaan
+        })
+
+        user = result.fetchone()
+
+    return user
+
+def login_user_by_identifier(login_identifier, password):
+    engine = get_engine()
+
+    login_identifier = login_identifier.strip().lower()
+
+    query = text("""
+        SELECT
+            user_id,
+            nama,
+            login_identifier,
+            login_type,
+            password_hash
+        FROM users
+        WHERE login_identifier = :login_identifier
+        LIMIT 1
+    """)
+
+    with engine.connect() as conn:
+        result = conn.execute(query, {
+            "login_identifier": login_identifier
+        })
+
+        user = result.fetchone()
+
+    if user is None:
+        return None
+
+    if user.password_hash is None:
+        return None
+
+    if check_password(password, user.password_hash):
+        return user
+
+    return None
+
+def reset_user_password(login_identifier, new_password):
+    engine = get_engine()
+
+    login_identifier = login_identifier.strip().lower()
+    password_hash = hash_password(new_password)
+
+    query = text("""
+        UPDATE users
+        SET password_hash = :password_hash
+        WHERE login_identifier = :login_identifier
+    """)
+
+    with engine.begin() as conn:
+        result = conn.execute(query, {
+            "login_identifier": login_identifier,
+            "password_hash": password_hash
+        })
+
+    return result.rowcount
+
+def save_monthly_plan(
+    user_id,
+    bulan,
+    tahun,
+    target_bulanan,
+    pemasukan_bulanan=0
+):
+    engine = get_engine()
+
+    query = text("""
+        INSERT INTO monthly_plans
+            (
+                user_id,
+                bulan,
+                tahun,
+                pemasukan_bulanan,
+                target_bulanan
+            )
+        VALUES
+            (
+                :user_id,
+                :bulan,
+                :tahun,
+                :pemasukan_bulanan,
+                :target_bulanan
+            )
+        ON CONFLICT (user_id, bulan, tahun)
+        DO UPDATE SET
+            pemasukan_bulanan = EXCLUDED.pemasukan_bulanan,
+            target_bulanan = EXCLUDED.target_bulanan,
+            updated_at = CURRENT_TIMESTAMP
+    """)
+
+    with engine.begin() as conn:
+        conn.execute(query, {
+            "user_id": user_id,
+            "bulan": bulan,
+            "tahun": tahun,
+            "pemasukan_bulanan": pemasukan_bulanan,
+            "target_bulanan": target_bulanan
+        })
+
+
+def load_monthly_plan(user_id, bulan, tahun):
+    engine = get_engine()
+
+    query = text("""
+        SELECT
+            plan_id,
+            user_id,
+            bulan,
+            tahun,
+            pemasukan_bulanan,
+            target_bulanan
+        FROM monthly_plans
+        WHERE user_id = :user_id
+          AND bulan = :bulan
+          AND tahun = :tahun
+        LIMIT 1
+    """)
+
+    with engine.connect() as conn:
+        result = conn.execute(query, {
+            "user_id": user_id,
+            "bulan": bulan,
+            "tahun": tahun
+        })
+
+        row = result.fetchone()
+
+    return row

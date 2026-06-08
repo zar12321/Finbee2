@@ -1,10 +1,11 @@
 CREATE TABLE users (
     user_id SERIAL PRIMARY KEY,
     nama VARCHAR(100) NOT NULL,
+    login_identifier VARCHAR(100) UNIQUE NOT NULL,
+    login_type VARCHAR(20) NOT NULL,
+    password_hash TEXT NOT NULL,
     umur INT,
     pekerjaan VARCHAR(50),
-    pemasukan_bulanan FLOAT,
-    target_tabungan FLOAT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -93,8 +94,16 @@ CREATE TABLE chat_history (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
-SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = 'public'
-ORDER BY table_name;
+CREATE TABLE monthly_plans (
+    plan_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    bulan INT NOT NULL,
+    tahun INT NOT NULL,
+    pemasukan_bulanan FLOAT NOT NULL,
+    target_bulanan FLOAT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    UNIQUE (user_id, bulan, tahun)
+);
