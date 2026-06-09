@@ -19,7 +19,7 @@ def prepare_monthly_expense(transactions_df):
     monthly_expense = (
         expense_df
         .set_index("tanggal_transaksi")
-        .resample("M")["amount"]
+        .resample("ME")["amount"]
         .sum()
         .reset_index()
     )
