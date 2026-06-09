@@ -81,7 +81,7 @@ def get_monthly_trend(transactions_df):
     monthly = (
         df
         .groupby([
-            pd.Grouper(key="tanggal_transaksi", freq="M"),
+            pd.Grouper(key="tanggal_transaksi", freq="ME"),
             "transaction_type"
         ])["amount"]
         .sum()
