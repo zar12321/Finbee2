@@ -711,11 +711,11 @@ def page_tambah_transaksi():
                 ]
             ].copy()
 
-            display_df["Hapus"] = False
+            display_df["Pilih Baris"] = False
 
             display_df = display_df[
                 [
-                    "Hapus",
+                    "Pilih Baris",
                     "transaction_id",
                     "tanggal_transaksi",
                     "category_name",
@@ -739,7 +739,7 @@ def page_tambah_transaksi():
                     "source"
                 ],
                 column_config={
-                    "Hapus": st.column_config.CheckboxColumn(
+                    "Pilih Baris": st.column_config.CheckboxColumn(
                         "Hapus",
                         help="Centang transaksi yang ingin dihapus."
                     ),
