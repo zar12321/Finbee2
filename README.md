@@ -34,6 +34,7 @@ Fitur Utama
 -Keterangan
 -Nominal
 -Other
+  user dapat memasukkan metode pembayaran secara manual.
 
 6. Import File Transaksi
 -CSV
