@@ -12,7 +12,8 @@ CREATE TABLE users (
 CREATE TABLE categories (
     category_id SERIAL PRIMARY KEY,
     category_name VARCHAR(50) NOT NULL,
-    category_type VARCHAR(20) DEFAULT 'expense'
+    category_type VARCHAR(20) DEFAULT 'expense',
+    CONSTRAINT unique_category_name_type UNIQUE (category_name, category_type)
 );
 
 CREATE TABLE import_files (
@@ -105,5 +106,5 @@ CREATE TABLE monthly_plans (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (user_id) REFERENCES users(user_id),
-    UNIQUE (user_id, bulan, tahun)
+    CONSTRAINT unique_monthly_plan_user_period UNIQUE (user_id, bulan, tahun)
 );
