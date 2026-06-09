@@ -42,6 +42,7 @@ CREATE TABLE transactions (
     payment_method VARCHAR(50),
     amount FLOAT NOT NULL,
     source VARCHAR(50) DEFAULT 'manual',
+    raw_category VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (user_id) REFERENCES users(user_id),
