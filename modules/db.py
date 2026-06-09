@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, bindparam
 import bcrypt
 
 
@@ -410,3 +410,70 @@ def load_monthly_plan(user_id, bulan, tahun):
         row = result.fetchone()
 
     return row
+
+def delete_transactions(transaction_ids, user_id):
+    engine = get_engine()
+
+    if len(transaction_ids) == 0:
+        return 0
+
+    query = text("""
+        DELETE FROM transactions
+        WHERE transaction_id IN :transaction_ids
+          AND user_id = :user_id
+    """).bindparams(
+        bindparam("transaction_ids", expanding=True)
+    )
+
+    with engine.begin() as conn:
+        result = conn.execute(query, {
+            "transaction_ids": transaction_ids,
+            "user_id": user_id
+        })
+
+    return result.rowcount
+
+def update_transaction(
+    transaction_id,
+    user_id,
+    category_id,
+    tanggal_transaksi,
+    transaction_type,
+    tujuan_transaksi,
+    keterangan,
+    payment_method,
+    amount,
+    raw_category=None
+):
+    engine = get_engine()
+
+    query = text("""
+        UPDATE transactions
+        SET
+            category_id = :category_id,
+            tanggal_transaksi = :tanggal_transaksi,
+            transaction_type = :transaction_type,
+            tujuan_transaksi = :tujuan_transaksi,
+            keterangan = :keterangan,
+            payment_method = :payment_method,
+            amount = :amount,
+            raw_category = :raw_category
+        WHERE transaction_id = :transaction_id
+          AND user_id = :user_id
+    """)
+
+    with engine.begin() as conn:
+        result = conn.execute(query, {
+            "transaction_id": transaction_id,
+            "user_id": user_id,
+            "category_id": category_id,
+            "tanggal_transaksi": tanggal_transaksi,
+            "transaction_type": transaction_type,
+            "tujuan_transaksi": tujuan_transaksi,
+            "keterangan": keterangan,
+            "payment_method": payment_method,
+            "amount": amount,
+            "raw_category": raw_category
+        })
+
+    return result.rowcount

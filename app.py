@@ -22,6 +22,8 @@ from modules.db import (
     load_transactions,
     insert_transaction,
     insert_imported_transactions,
+    update_transaction,
+    delete_transactions,
     register_user,
     login_user_by_identifier,
     reset_user_password,
@@ -305,7 +307,7 @@ def page_profil_saya():
     st.divider()
 
     st.subheader("Rencana Bulanan")
-    
+
     if st.session_state.monthly_plan_message != "":
         st.success(st.session_state.monthly_plan_message)
 
@@ -670,7 +672,7 @@ def page_tambah_transaksi():
 
         except Exception as e:
             st.error(f"Gagal menyimpan transaksi: {e}")
-
+  
     st.divider()
 
     st.subheader("Daftar Transaksi Saya")
@@ -680,12 +682,231 @@ def page_tambah_transaksi():
 
         user_transactions = transactions_df[
             transactions_df["user_id"] == st.session_state.user_id
-        ]
+        ].copy()
 
         if user_transactions.empty:
             st.info("Belum ada transaksi untuk akun ini.")
         else:
-            st.dataframe(user_transactions, use_container_width=True)
+            categories_df = load_categories()
+            category_options = sorted(
+                categories_df["category_name"].dropna().unique().tolist()
+            )
+
+            category_id_map = dict(
+                zip(categories_df["category_name"], categories_df["category_id"])
+            )
+
+            display_df = user_transactions[
+                [
+                    "transaction_id",
+                    "tanggal_transaksi",
+                    "category_name",
+                    "raw_category",
+                    "transaction_type",
+                    "tujuan_transaksi",
+                    "keterangan",
+                    "payment_method",
+                    "amount",
+                    "source"
+                ]
+            ].copy()
+
+            display_df["Hapus"] = False
+
+            display_df = display_df[
+                [
+                    "Hapus",
+                    "transaction_id",
+                    "tanggal_transaksi",
+                    "category_name",
+                    "raw_category",
+                    "transaction_type",
+                    "tujuan_transaksi",
+                    "keterangan",
+                    "payment_method",
+                    "amount",
+                    "source"
+                ]
+            ]
+
+            edited_transactions = st.data_editor(
+                display_df,
+                use_container_width=True,
+                hide_index=True,
+                key="transaction_editor",
+                disabled=[
+                    "transaction_id",
+                    "source"
+                ],
+                column_config={
+                    "Hapus": st.column_config.CheckboxColumn(
+                        "Hapus",
+                        help="Centang transaksi yang ingin dihapus."
+                    ),
+                    "transaction_id": st.column_config.NumberColumn(
+                        "ID",
+                        disabled=True
+                    ),
+                    "tanggal_transaksi": st.column_config.DateColumn(
+                        "Tanggal Transaksi",
+                        required=True
+                    ),
+                    "category_name": st.column_config.SelectboxColumn(
+                        "Kategori",
+                        options=category_options,
+                        required=True
+                    ),
+                    "raw_category": st.column_config.TextColumn(
+                        "Kategori Asli",
+                        help="Kategori asli dari file import. Boleh dikosongkan untuk transaksi manual."
+                    ),
+                    "transaction_type": st.column_config.SelectboxColumn(
+                        "Tipe",
+                        options=["expense", "income"],
+                        required=True
+                    ),
+                    "tujuan_transaksi": st.column_config.TextColumn(
+                        "Tujuan Transaksi",
+                        required=True
+                    ),
+                    "keterangan": st.column_config.TextColumn(
+                        "Keterangan"
+                    ),
+                    "payment_method": st.column_config.TextColumn(
+                        "Metode Pembayaran",
+                        required=True
+                    ),
+                    "amount": st.column_config.NumberColumn(
+                        "Nominal",
+                        min_value=0,
+                        step=1000,
+                        required=True
+                    ),
+                    "source": st.column_config.TextColumn(
+                        "Sumber",
+                        disabled=True
+                    )
+                }
+            )
+
+            st.caption(
+                "Edit data langsung di tabel, lalu klik Simpan Perubahan. "
+                "Untuk menghapus, centang kolom Hapus lalu klik Hapus Baris Terpilih."
+            )
+
+            col_save, col_delete = st.columns(2)
+
+            with col_save:
+                if st.button("Simpan Perubahan", use_container_width=True):
+                    try:
+                        updated_count = 0
+
+                        for _, row in edited_transactions.iterrows():
+                            transaction_id = int(row["transaction_id"])
+
+                            original_row = display_df[
+                                display_df["transaction_id"] == transaction_id
+                            ].iloc[0]
+
+                            editable_columns = [
+                                "tanggal_transaksi",
+                                "category_name",
+                                "raw_category",
+                                "transaction_type",
+                                "tujuan_transaksi",
+                                "keterangan",
+                                "payment_method",
+                                "amount"
+                            ]
+
+                            has_changed = any(
+                                str(row[col]) != str(original_row[col])
+                                for col in editable_columns
+                            )
+
+                            if has_changed:
+                                category_name = str(row["category_name"]).strip()
+                                category_id = category_id_map.get(category_name)
+
+                                if category_id is None:
+                                    st.error(f"Kategori tidak valid: {category_name}")
+                                    return
+
+                                if str(row["tujuan_transaksi"]).strip() == "":
+                                    st.error("Tujuan transaksi tidak boleh kosong.")
+                                    return
+
+                                if str(row["payment_method"]).strip() == "":
+                                    st.error("Metode pembayaran tidak boleh kosong.")
+                                    return
+
+                                if float(row["amount"]) <= 0:
+                                    st.error("Nominal harus lebih dari 0.")
+                                    return
+
+                                updated_rows = update_transaction(
+                                    transaction_id=transaction_id,
+                                    user_id=st.session_state.user_id,
+                                    category_id=int(category_id),
+                                    tanggal_transaksi=row["tanggal_transaksi"],
+                                    transaction_type=row["transaction_type"],
+                                    tujuan_transaksi=str(row["tujuan_transaksi"]).strip(),
+                                    keterangan=str(row["keterangan"]).strip(),
+                                    payment_method=str(row["payment_method"]).strip(),
+                                    amount=float(row["amount"]),
+                                    raw_category=str(row["raw_category"]).strip()
+                                    if pd.notna(row["raw_category"])
+                                    else None
+                                )
+
+                                updated_count += updated_rows
+
+                        if updated_count == 0:
+                            st.info("Tidak ada perubahan yang disimpan.")
+                        else:
+                            st.success(f"{updated_count} transaksi berhasil diperbarui.")
+                            st.cache_data.clear()
+
+                            if "transaction_editor" in st.session_state:
+                                del st.session_state.transaction_editor
+
+                            st.rerun()
+
+                    except Exception as e:
+                        st.error(f"Gagal menyimpan perubahan transaksi: {e}")
+
+            with col_delete:
+                selected_delete_df = edited_transactions[
+                    edited_transactions["Hapus"] == True
+                ]
+
+                if st.button("Hapus Baris Terpilih", use_container_width=True):
+                    if selected_delete_df.empty:
+                        st.warning("Belum ada transaksi yang dipilih untuk dihapus.")
+                        return
+
+                    try:
+                        transaction_ids = (
+                            selected_delete_df["transaction_id"]
+                            .astype(int)
+                            .tolist()
+                        )
+
+                        deleted_rows = delete_transactions(
+                            transaction_ids=transaction_ids,
+                            user_id=st.session_state.user_id
+                        )
+
+                        st.success(f"{deleted_rows} transaksi berhasil dihapus.")
+                        st.cache_data.clear()
+
+                        if "transaction_editor" in st.session_state:
+                            del st.session_state.transaction_editor
+
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"Gagal menghapus transaksi: {e}")
 
     except Exception as e:
         st.error(f"Gagal memuat transaksi: {e}")
