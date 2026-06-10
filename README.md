@@ -1,6 +1,6 @@
 # Finbee2
 
-FinBee adalah aplikasi pencatatan dan analisis keuangan pribadi berbasis Streamlit. Aplikasi ini membantu user mencatat transaksi, mengimpor file transaksi, melihat ringkasan keuangan, memantau batas pengeluaran bulanan, melakukan analisis sederhana, prediksi pengeluaran bulan depan, serta mendapatkan insight menggunakan AI.
+**FinBee** adalah aplikasi pencatatan dan analisis keuangan pribadi berbasis Streamlit. Aplikasi ini membantu user mencatat transaksi, mengimpor file transaksi, melihat ringkasan keuangan, memantau batas pengeluaran bulanan, melakukan analisis sederhana, prediksi pengeluaran bulan depan, serta mendapatkan insight menggunakan AI.
 
 Fitur Utama
 1. Autentikasi User
