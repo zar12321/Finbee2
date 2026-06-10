@@ -114,7 +114,7 @@ from pages.ai.settings import (
 st.set_page_config(
     page_title=APP_NAME,
     page_icon=APP_ICON,
-    layout=LAYOUT,
+    layout=APP_LAYOUT,
     initial_sidebar_state=SIDEBAR_STATE
 )
 
