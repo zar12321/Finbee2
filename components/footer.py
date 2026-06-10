@@ -5,11 +5,13 @@ from config.settings import APP_VERSION
 
 import streamlit as st
 
+import streamlit as st
+
 def render_footer():
 
     st.markdown(
         """
-        <div>
+        <div class="footer">
             FinBee Personal Finance Dashboard
         </div>
         """,
