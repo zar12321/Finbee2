@@ -140,9 +140,17 @@ def get_current_user():
 def get_current_user_id():
     return st.session_state.get("user_id")
 
-
 def get_current_user_name():
     return st.session_state.get("user_name")
+
+def get_login_identifier():
+    return st.session_state.get("login_identifier")
+
+def get_login_type():
+    return st.session_state.get("login_type")
+
+def get_chat_history():
+    return st.session_state.get("chat_history", [])
 
 
 def append_chat(role, content):
