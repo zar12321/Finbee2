@@ -24,7 +24,8 @@ from config.theme import (
 from state.session import (
     init_session,
     is_logged_in,
-    logout_user
+    logout_user,
+    get_current_user_name
 )
 
 # ==========================================================
@@ -195,7 +196,9 @@ selected_page = render_sidebar()
 # NAVBAR
 # ==========================================================
 
-render_navbar()
+user_name = get_current_user_name()
+
+render_navbar(user_name)
 
 # ==========================================================
 # DASHBOARD MENU
