@@ -228,7 +228,8 @@ def render_dashboard_home():
 
             fig.update_traces(
                 textposition="inside",
-                textinfo="percent+label"
+                textinfo="percent+label", 
+                marker_color = "#8B5CF6"
             )
 
             fig.update_layout(
@@ -274,11 +275,29 @@ def render_dashboard_home():
             fig = px.bar(
                 payment_df,
                 x="payment_method",
-                y="amount"
+                y="amount",
+                text="amount"
+            )
+
+            fig.update_traces(
+                textposition="outside", 
+                marker_color = "#8B5CF6"
             )
 
             fig.update_layout(
-                height=400
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font_color="white",
+                xaxis_title="",
+                yaxis_title="Total Pengeluaran",
+                showlegend=False,
+                margin=dict(
+                    l=0,
+                    r=0,
+                    t=20,
+                    b=0
+                ),
+                height=350
             )
 
             st.plotly_chart(
