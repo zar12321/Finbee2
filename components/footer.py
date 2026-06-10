@@ -4,14 +4,19 @@ from config.settings import APP_VERSION
 
 
 def render_footer():
+
     st.markdown(
-        """
-        <div style="
-            text-align:center;
-            padding:20px;
-            color:white;
-        ">
-            FinBee Footer
+        f"""
+        <div class="footer">
+
+            <span>
+                FinBee Personal Finance Dashboard
+            </span>
+
+            <span>
+                Version {APP_VERSION}
+            </span>
+
         </div>
         """,
         unsafe_allow_html=True
