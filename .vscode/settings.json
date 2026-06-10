@@ -1,0 +1,22 @@
+{
+    "sqltools.connections": [
+        {
+            "pgOptions": {
+                "ssl": {
+                    "rejectUnauthorized": true
+                }
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "ep-super-lake-aoslfgfv-pooler.c-2.ap-southeast-1.aws.neon.tech",
+            "port": 5432,
+            "sshOptions": {
+                "port": 22
+            },
+            "driver": "CockroachDB",
+            "name": "Neon",
+            "database": "neondb",
+            "username": "neondb_owner"
+        }
+    ]
+}

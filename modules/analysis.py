@@ -72,23 +72,32 @@ def analyze_by_payment_method(transactions_df):
 
 
 def get_monthly_trend(transactions_df):
+
     if transactions_df.empty:
         return pd.DataFrame()
 
     df = transactions_df.copy()
-    df["tanggal_transaksi"] = pd.to_datetime(df["tanggal_transaksi"])
 
-    monthly = (
-        df
-        .groupby([
-            pd.Grouper(key="tanggal_transaksi", freq="ME"),
-            "transaction_type"
-        ])["amount"]
-        .sum()
-        .reset_index()
+    df["tanggal_transaksi"] = pd.to_datetime(
+        df["tanggal_transaksi"]
     )
 
-    return monthly
+    trend = (
+        df
+        .groupby(
+            [
+                "tanggal_transaksi",
+                "transaction_type"
+            ]
+        )["amount"]
+        .sum()
+        .reset_index()
+        .sort_values(
+            "tanggal_transaksi"
+        )
+    )
+
+    return trend
 
 
 def get_top_transactions(transactions_df, n=5):
