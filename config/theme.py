@@ -112,12 +112,6 @@ def inject_base_theme():
             color: {TEXT_COLOR};
         }}
 
-        /*
-        section[data-testid="stSidebar"] {{
-            display: none;
-        }}
-        */
-        
         header {{
             visibility: hidden;
         }}
