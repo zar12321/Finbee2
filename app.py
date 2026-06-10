@@ -127,6 +127,15 @@ init_session()
 
 apply_theme()
 
+st.markdown(
+    """
+    <h1 style="color:red;">
+        TEST HTML GLOBAL
+    </h1>
+    """,
+    unsafe_allow_html=True
+)
+
 # ==========================================================
 # HIDE STREAMLIT DEFAULT
 # ==========================================================
