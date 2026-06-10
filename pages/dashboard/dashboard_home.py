@@ -481,53 +481,6 @@ def render_dashboard_home():
     )
 
     # ======================================================
-    # TOP TRANSAKSI
-    # ======================================================
-
-    st.subheader(
-        "🏆 Top 5 Transaksi Terbesar"
-    )
-
-    top_df = get_top_transactions(
-        transactions_df,
-        n=5
-    )
-
-    if not top_df.empty:
-
-        display_df = top_df[
-            [
-                "tanggal_transaksi",
-                "category_name",
-                "tujuan_transaksi",
-                "payment_method",
-                "amount"
-            ]
-        ].copy()
-
-        display_df.columns = [
-            "Tanggal",
-            "Kategori",
-            "Tujuan",
-            "Metode Pembayaran",
-            "Nominal"
-        ]
-
-        st.dataframe(
-            display_df,
-            use_container_width=True,
-            hide_index=True
-        )
-
-    else:
-
-        st.info(
-            "Belum ada transaksi."
-        )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # ======================================================
     # RECENT ACTIVITY
     # ======================================================
 
