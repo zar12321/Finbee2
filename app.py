@@ -115,7 +115,7 @@ st.set_page_config(
     page_title=APP_NAME,
     page_icon=APP_ICON,
     layout=APP_LAYOUT,
-    initial_sidebar_state=SIDEBAR_STATE
+    initial_sidebar_state=APP_SIDEBAR_STATE
 )
 
 # ==========================================================
