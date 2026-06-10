@@ -137,6 +137,13 @@ def get_current_user():
         "login_type": st.session_state.login_type
     }
 
+def get_current_user_id():
+    return st.session_state.get("user_id")
+
+
+def get_current_user_name():
+    return st.session_state.get("user_name")
+
 
 def append_chat(role, content):
     """
