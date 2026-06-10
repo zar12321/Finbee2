@@ -24,10 +24,13 @@ def render_financial_metrics(
     total_income,
     total_expense,
     balance,
-    transaction_count
+    transaction_count, 
+    avg_transaction, 
+    avg_daily
 ):
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
+    col4, col5, col6 = st.columns(3)
 
     with col1:
         render_metric_card(
@@ -59,4 +62,20 @@ def render_financial_metrics(
             transaction_count,
             "📋",
             "orange"
+        )
+    
+    with col5:
+        render_metric_card(
+            "Avg Transaction",
+            format_currency(avg_transaction),
+            "📊",
+            "purple"
+        )
+
+    with col6:
+        render_metric_card(
+            "Avg Daily",
+            format_currency(avg_daily),
+            "🔥",
+            "cyan"
         )

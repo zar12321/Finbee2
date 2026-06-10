@@ -105,6 +105,37 @@ def render_dashboard_home():
     user_id = get_current_user_id()
     user_name = get_current_user_name()
 
+    # ======================================================
+    # FILTER BULAN & TAHUN
+    # ======================================================
+
+    filter_col1, filter_col2 = st.columns([2,1])
+
+    with filter_col1:
+
+        selected_month = st.selectbox(
+            "📅 Bulan",
+            options=list(range(1,13)),
+            index=datetime.now().month - 1,
+            format_func=lambda x: datetime(
+                2026,
+                x,
+                1
+            ).strftime("%B")
+        )
+
+    with filter_col2:
+
+        selected_year = st.selectbox(
+            "📆 Tahun",
+            options=[
+                datetime.now().year - 1,
+                datetime.now().year,
+                datetime.now().year + 1
+            ],
+            index=1
+        )
+
     render_hero_card(
         title=f"Halo, {user_name}",
         subtitle="Pantau kondisi keuanganmu secara real-time bersama FinBee.",
@@ -117,6 +148,24 @@ def render_dashboard_home():
     try:
 
         transactions_df = load_user_transactions()
+        
+        if not transactions_df.empty:
+
+            transactions_df["tanggal_transaksi"] = pd.to_datetime(
+                transactions_df["tanggal_transaksi"]
+            )
+
+            transactions_df = transactions_df[
+                (
+                    transactions_df["tanggal_transaksi"].dt.month
+                    == selected_month
+                )
+                &
+                (
+                    transactions_df["tanggal_transaksi"].dt.year
+                    == selected_year
+                )
+            ]
 
     except Exception as e:
 
@@ -135,11 +184,28 @@ def render_dashboard_home():
     balance = metrics["balance"]
     transaction_count = metrics["transaction_count"]
 
+    avg_transaction = (
+        total_expense / transaction_count
+        if transaction_count > 0 
+        else 0
+    )
+
+    days_in_month = max(
+        datetime.now().day,
+        1
+    )
+
+    avg_daily = (
+        total_expense / days_in_month
+    )
+
     render_financial_metrics(
         total_income=total_income,
         total_expense=total_expense,
         balance=balance,
-        transaction_count=transaction_count
+        transaction_count=transaction_count, 
+        avg_transaction=avg_transaction, 
+        avg_daily=avg_daily
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
