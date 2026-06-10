@@ -112,17 +112,13 @@ def inject_base_theme():
             color: {TEXT_COLOR};
         }}
 
-        header {{
-            visibility: hidden;
-        }}
+
 
         footer {{
             visibility: hidden;
         }}
 
-        #MainMenu {{
-            visibility: hidden;
-        }}
+        
 
         .block-container {{
             padding-top: 1rem;
