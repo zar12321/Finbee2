@@ -46,7 +46,7 @@ def render_login_page():
         login_identifier = st.text_input(
             label="Email atau Username",
             placeholder="Masukkan email atau username",
-            key="login_identifier"
+            key="login_identifier_input"
         )
 
         password = st.text_input(
