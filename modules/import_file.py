@@ -65,7 +65,7 @@ def parse_flexible_date(value):
         return pd.to_datetime(
             value,
             errors="coerce",
-            dayfirst=False
+            infer_datetime_format=True
         )
 
     except Exception:
@@ -184,16 +184,33 @@ def auto_clean_financial_file(df):
         for col in df.columns
     }
 
-    date_col = find_column_by_keywords(
-        df.columns,
-        [
-            "tanggal transaksi",
-            "tanggal",
-            "date",
-            "tgl",
-            "waktu"
-        ]
-    )
+    date_col = None
+
+    priority_date_columns = [
+        "tanggal transaksi",
+        "transaction date",
+        "date transaksi"
+    ]
+
+    for col in df.columns:
+
+        col_lower = str(col).lower().strip()
+
+        if col_lower in priority_date_columns:
+
+            date_col = col
+            break
+
+    if date_col is None:
+
+        date_col = find_column_by_keywords(
+            df.columns,
+            [
+                "date",
+                "tgl",
+                "tanggal"
+            ]
+        )
 
     amount_col = find_column_by_keywords(
         df.columns,
