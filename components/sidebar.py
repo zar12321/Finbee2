@@ -40,3 +40,4 @@ def render_sidebar():
 
         if st.button("⚙️ AI Settings"):
             navigate("ai_settings")
+    return current_page()
