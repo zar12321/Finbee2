@@ -1,0 +1,104 @@
+.ai-hero{
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(6,182,212,.20),
+            rgba(124,58,237,.20)
+        );
+
+    border-radius:30px;
+
+    padding:40px;
+}
+
+
+.ai-card{
+
+    background:#111827;
+
+    border-radius:24px;
+
+    border:1px solid #1E293B;
+
+    padding:24px;
+
+    transition:.3s;
+}
+
+.ai-card:hover{
+
+    transform:translateY(-4px);
+
+    border-color:#06B6D4;
+}
+
+
+.chat-container{
+
+    background:#0F172A;
+
+    border-radius:22px;
+
+    padding:20px;
+
+    min-height:500px;
+
+    border:1px solid #1E293B;
+}
+
+
+.user-bubble{
+
+    background:
+        linear-gradient(
+            135deg,
+            #7C3AED,
+            #A855F7
+        );
+
+    color:white;
+
+    padding:14px;
+
+    border-radius:18px;
+
+    margin-bottom:10px;
+
+    margin-left:20%;
+}
+
+
+.ai-bubble{
+
+    background:#111827;
+
+    color:white;
+
+    padding:14px;
+
+    border-radius:18px;
+
+    margin-bottom:10px;
+
+    margin-right:20%;
+
+    border:1px solid #1E293B;
+}
+
+
+.recommendation-card{
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(6,182,212,.12),
+            rgba(124,58,237,.12)
+        );
+
+    border-radius:24px;
+
+    padding:24px;
+
+    border:1px solid rgba(255,255,255,.05);
+}
