@@ -171,32 +171,22 @@ def render_dashboard_home():
         )
     )
 
-    st.markdown(
-        f"""
-        <div style="
-            background:#111827;
-            padding:20px;
-            border-radius:18px;
-            border:1px solid #1f2937;
-            margin-bottom:20px;
-        ">
+    with st.container(border=True):
 
-            <h3>
-                🎯 Target Pengeluaran Bulanan
-            </h3>
+        st.subheader(
+            "🎯 Target Pengeluaran Bulanan"
+        )
 
-            <h2>
-                {format_currency(target_bulanan)}
-            </h2>
+        st.metric(
+            label="Target",
+            value=format_currency(target_bulanan)
+        )
 
-            <h4 style="color:{color};">
-                {status_text}
-            </h4>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+        st.markdown(
+            f"### :{color}[{status_text}]"
+            if color in ["green", "red", "orange", "blue"]
+            else f"### {status_text}"
+        )
 
     progress_value = min(
         percentage / 100,
