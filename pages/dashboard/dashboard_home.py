@@ -379,11 +379,11 @@ def render_dashboard_home():
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ======================================================
-    # TREND BULANAN
+    # CASH FLOW TIMELINE
     # ======================================================
 
     render_chart_card(
-        "Tren Bulanan"
+        "📈 Cash Flow Timeline"
     )
 
     trend_df = get_monthly_trend(
@@ -400,8 +400,68 @@ def render_dashboard_home():
             markers=True
         )
 
+        colors = {
+            "income": "#22C55E",
+            "expense": "#EF4444"
+        }
+
+        for trace in fig.data:
+
+            if trace.name in colors:
+
+                trace.line.color = colors[
+                    trace.name
+                ]
+
+                trace.marker.color = colors[
+                    trace.name
+                ]
+
+                trace.line.width = 5
+
+                trace.marker.size = 10
+
         fig.update_layout(
-            height=450
+
+            height=500,
+
+            paper_bgcolor="#08130D",
+            plot_bgcolor="#08130D",
+
+            font_color="white",
+
+            hovermode="x unified",
+
+            margin=dict(
+                l=20,
+                r=20,
+                t=20,
+                b=20
+            ),
+
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
+
+            xaxis=dict(
+                title="",
+                showgrid=False,
+                zeroline=False
+            ),
+
+            yaxis=dict(
+                title="Nominal",
+                gridcolor="rgba(255,255,255,0.08)",
+                zeroline=False
+            )
+        )
+
+        fig.update_xaxes(
+            tickformat="%d %b"
         )
 
         st.plotly_chart(
@@ -415,8 +475,10 @@ def render_dashboard_home():
             "Belum ada data tren."
         )
 
-
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        "<br>",
+        unsafe_allow_html=True
+    )
 
     # ======================================================
     # TOP TRANSAKSI
