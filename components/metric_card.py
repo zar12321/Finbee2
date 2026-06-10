@@ -9,31 +9,7 @@ def render_metric_card(
     icon,
     color_class="green"
 ):
-
-    st.markdown(
-        f"""
-        <div class="metric-card">
-
-            <div class="metric-icon {color_class}">
-                {icon}
-            </div>
-
-            <div class="metric-content">
-
-                <div class="metric-title">
-                    {title}
-                </div>
-
-                <div class="metric-value">
-                    {value}
-                </div>
-
-            </div>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.success(f"{icon} {title}: {value}")
 
 
 def render_financial_metrics(
