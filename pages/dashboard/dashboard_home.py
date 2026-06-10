@@ -626,7 +626,7 @@ def render_dashboard_home():
 
         with summary1:
             st.metric(
-                "📈 Income",
+                "💰 Income",
                 format_currency(income_filtered)
             )
 
@@ -638,7 +638,7 @@ def render_dashboard_home():
 
         with summary3:
             st.metric(
-                "💰 Net",
+                "🏦 Balanced",
                 format_currency(
                     income_filtered -
                     expense_filtered
@@ -647,7 +647,7 @@ def render_dashboard_home():
 
         with summary4:
             st.metric(
-                "📋 Jumlah",
+                "📋 Transactions",
                 len(filtered_df)
             )
 
