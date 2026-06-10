@@ -9,8 +9,8 @@ import streamlit as st
 from config.settings import (
     APP_NAME,
     APP_ICON,
-    LAYOUT,
-    SIDEBAR_STATE
+    APP_LAYOUT,
+    APP_SIDEBAR_STATE
 )
 
 from config.theme import (
