@@ -125,6 +125,10 @@ st.set_page_config(
 
 init_session()
 
+with st.sidebar:
+    st.write("SIDEBAR TEST")
+    st.button("TEST BUTTON")
+
 apply_theme()
 
 st.markdown(
