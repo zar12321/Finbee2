@@ -13,7 +13,7 @@ APP_VERSION = "1.0.0"
 
 APP_LAYOUT = "wide"
 
-APP_SIDEBAR_STATE = "collapsed"
+APP_SIDEBAR_STATE = "expanded"
 
 
 # ==========================================================
