@@ -60,17 +60,32 @@ def parse_flexible_date(value):
     if pd.isna(value):
         return pd.NaT
 
-    try:
+    formats = [
 
-        return pd.to_datetime(
-            value,
-            errors="coerce",
-            infer_datetime_format=True
-        )
+        "%Y-%m-%d",
+        "%d/%m/%Y",
+        "%m/%d/%Y",
+        "%d-%m-%Y",
+        "%Y/%m/%d",
+        "%Y-%m-%d %H:%M:%S",
+        "%d/%m/%Y %H:%M:%S"
 
-    except Exception:
+    ]
 
-        return pd.NaT
+    for fmt in formats:
+
+        try:
+            return pd.to_datetime(
+                value,
+                format=fmt
+            )
+        except:
+            pass
+
+    return pd.to_datetime(
+        value,
+        errors="coerce"
+    )
 
 
 def normalize_transaction_type(value):
