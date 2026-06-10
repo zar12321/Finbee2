@@ -167,100 +167,255 @@ def standardize_category(raw_category, description="", transaction_type="expense
 
 
 def auto_clean_financial_file(df):
+
     cleaned_df = pd.DataFrame()
 
-    columns = df.columns
+    # =====================================================
+    # NORMALISASI NAMA KOLOM
+    # =====================================================
+
+    normalized_columns = {
+        col: str(col).lower().strip()
+        for col in df.columns
+    }
 
     date_col = find_column_by_keywords(
-        columns,
-        ["tanggal", "date", "tgl", "waktu"]
+        df.columns,
+        [
+            "tanggal transaksi",
+            "tanggal",
+            "date",
+            "tgl",
+            "waktu"
+        ]
     )
 
     amount_col = find_column_by_keywords(
-        columns,
-        ["amount", "nominal", "jumlah", "total", "harga", "pengeluaran", "pemasukan"]
+        df.columns,
+        [
+            "nominal",
+            "amount",
+            "jumlah",
+            "total",
+            "harga",
+            "value",
+            "nilai",
+            "pengeluaran",
+            "pemasukan"
+        ]
+    )
+
+    tujuan_col = find_column_by_keywords(
+        df.columns,
+        [
+            "tujuan transaksi",
+            "tujuan"
+        ]
     )
 
     desc_col = find_column_by_keywords(
-        columns,
-        ["deskripsi", "description", "keterangan", "tujuan", "catatan", "remark", "details"]
+        df.columns,
+        [
+            "keterangan",
+            "deskripsi",
+            "description",
+            "catatan",
+            "remark",
+            "details"
+        ]
     )
 
     payment_col = find_column_by_keywords(
-        columns,
-        ["payment", "metode", "method", "pembayaran", "wallet", "bank"]
+        df.columns,
+        [
+            "bayar lewat",
+            "metode pembayaran",
+            "payment method",
+            "payment",
+            "metode",
+            "wallet",
+            "bank"
+        ]
     )
 
     type_col = find_column_by_keywords(
-        columns,
-        ["type", "tipe", "jenis"]
+        df.columns,
+        [
+            "transaction type",
+            "jenis transaksi",
+            "type",
+            "tipe",
+            "jenis"
+        ]
     )
 
     category_col = find_column_by_keywords(
-        columns,
-        ["category", "kategori"]
+        df.columns,
+        [
+            "kategori",
+            "category"
+        ]
     )
 
     if amount_col is None:
-        raise ValueError("Kolom nominal tidak ditemukan. File harus memiliki kolom nominal/jumlah/amount.")
+        raise ValueError(
+            "Kolom nominal tidak ditemukan."
+        )
 
-    if date_col is not None:
-        cleaned_df["tanggal_transaksi"] = df[date_col].apply(parse_flexible_date)
+    # =====================================================
+    # TANGGAL
+    # =====================================================
+
+    if date_col:
+
+        cleaned_df["tanggal_transaksi"] = (
+            df[date_col]
+            .apply(parse_flexible_date)
+        )
+
     else:
-        cleaned_df["tanggal_transaksi"] = pd.Timestamp.today().normalize()
 
-    if desc_col is not None:
+        cleaned_df["tanggal_transaksi"] = (
+            pd.Timestamp.today().normalize()
+        )
+
+    # =====================================================
+    # KETERANGAN
+    # =====================================================
+
+    if desc_col:
+
         cleaned_df["keterangan"] = (
             df[desc_col]
-            .fillna("Transaksi tanpa keterangan")
+            .fillna("")
             .astype(str)
             .str.strip()
         )
+
     else:
-        cleaned_df["keterangan"] = "Transaksi tanpa keterangan"
 
-    cleaned_df["tujuan_transaksi"] = cleaned_df["keterangan"]
+        cleaned_df["keterangan"] = ""
 
-    if payment_col is not None:
+    # =====================================================
+    # TUJUAN TRANSAKSI
+    # =====================================================
+
+    if tujuan_col:
+
+        cleaned_df["tujuan_transaksi"] = (
+            df[tujuan_col]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+        )
+
+    else:
+
+        cleaned_df["tujuan_transaksi"] = (
+            cleaned_df["keterangan"]
+        )
+
+    cleaned_df.loc[
+        cleaned_df["tujuan_transaksi"] == "",
+        "tujuan_transaksi"
+    ] = cleaned_df["keterangan"]
+
+    # =====================================================
+    # PAYMENT METHOD
+    # =====================================================
+
+    if payment_col:
+
         cleaned_df["payment_method"] = (
             df[payment_col]
             .fillna("Unknown")
             .astype(str)
             .str.strip()
         )
+
     else:
-        cleaned_df["payment_method"] = "Unknown"
 
-    cleaned_df.loc[
-        cleaned_df["payment_method"].str.strip() == "",
-        "payment_method"
-    ] = "Unknown"
+        cleaned_df["payment_method"] = (
+            "Unknown"
+        )
 
-    cleaned_df["amount"] = df[amount_col].apply(clean_amount)
+    # =====================================================
+    # AMOUNT
+    # =====================================================
 
-    if type_col is not None:
-        cleaned_df["transaction_type"] = df[type_col].apply(normalize_transaction_type)
+    cleaned_df["amount"] = (
+        df[amount_col]
+        .apply(clean_amount)
+    )
+
+    # =====================================================
+    # TRANSACTION TYPE
+    # =====================================================
+
+    if type_col:
+
+        cleaned_df["transaction_type"] = (
+            df[type_col]
+            .apply(normalize_transaction_type)
+        )
+
     else:
-        cleaned_df["transaction_type"] = "expense"
 
-    if category_col is not None:
+        cleaned_df["transaction_type"] = (
+            "expense"
+        )
+
+    # =====================================================
+    # RAW CATEGORY
+    # =====================================================
+
+    if category_col:
+
         cleaned_df["raw_category"] = (
             df[category_col]
             .fillna("")
             .astype(str)
             .str.strip()
         )
+
     else:
+
         cleaned_df["raw_category"] = ""
 
-    cleaned_df["category_name"] = cleaned_df.apply(
-        lambda row: standardize_category(
-            raw_category=row["raw_category"],
-            description=row["keterangan"],
-            transaction_type=row["transaction_type"]
-        ),
-        axis=1
+    # =====================================================
+    # AUTO CATEGORY MAPPING
+    # =====================================================
+
+    cleaned_df["category_name"] = (
+        cleaned_df.apply(
+            lambda row: standardize_category(
+                raw_category=row["raw_category"],
+                description=(
+                    str(row["tujuan_transaksi"])
+                    + " "
+                    + str(row["keterangan"])
+                ),
+                transaction_type=row["transaction_type"]
+            ),
+            axis=1
+        )
     )
+
+    # =====================================================
+    # CLEAN DATA
+    # =====================================================
+
+    cleaned_df = cleaned_df.dropna(
+        subset=["amount"]
+    )
+
+    cleaned_df = cleaned_df[
+        cleaned_df["amount"] > 0
+    ]
+
+    # =====================================================
+    # FINAL SCHEMA DATABASE
+    # =====================================================
 
     cleaned_df = cleaned_df[
         [
