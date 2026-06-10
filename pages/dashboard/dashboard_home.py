@@ -27,8 +27,7 @@ from state.session import (
 from components.hero_card import render_hero_card
 from components.metric_card import render_financial_metrics
 from components.chart_card import (
-    open_chart_card,
-    close_chart_card
+    render_chart_card
 )
 
 from utils.format_currency import format_currency
@@ -220,7 +219,7 @@ def render_dashboard_home():
 
     with col1:
 
-        open_chart_card(
+        render_chart_card(
             "Pengeluaran Berdasarkan Kategori"
         )
 
@@ -252,11 +251,10 @@ def render_dashboard_home():
                 "Belum ada data kategori."
             )
 
-        close_chart_card()
 
     with col2:
 
-        open_chart_card(
+        render_chart_card(
             "Metode Pembayaran"
         )
 
@@ -289,7 +287,6 @@ def render_dashboard_home():
                 "Belum ada data pembayaran."
             )
 
-        close_chart_card()
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -297,7 +294,7 @@ def render_dashboard_home():
     # TREND BULANAN
     # ======================================================
 
-    open_chart_card(
+    render_chart_card(
         "Tren Bulanan"
     )
 
@@ -330,7 +327,6 @@ def render_dashboard_home():
             "Belum ada data tren."
         )
 
-    close_chart_card()
 
     st.markdown("<br>", unsafe_allow_html=True)
 
