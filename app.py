@@ -140,32 +140,6 @@ st.markdown(
 # HIDE STREAMLIT DEFAULT
 # ==========================================================
 
-st.markdown(
-    """
-    <style>
-
-    #MainMenu {
-        visibility:hidden;
-    }
-
-    footer {
-        visibility:hidden;
-    }
-
-    header {
-        visibility:hidden;
-    }
-
-    .block-container{
-        padding-top:1rem;
-        padding-bottom:2rem;
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 # ==========================================================
 # ROUTER AUTH
 # ==========================================================
