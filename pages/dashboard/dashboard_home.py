@@ -394,38 +394,23 @@ def render_dashboard_home():
                 else "📉"
             )
 
-            st.markdown(
-                f"""
-                <div style="
-                    background:#0f172a;
-                    border:1px solid #1e293b;
-                    border-radius:12px;
-                    padding:14px;
-                    margin-bottom:8px;
-                ">
+            with st.container(border=True):
 
-                    <b>{icon} {row['category_name']}</b>
+                st.markdown(
+                    f"**{icon} {row['category_name']}**"
+                )
 
-                    <br>
+                st.write(
+                    row["tujuan_transaksi"]
+                )
 
-                    {row['tujuan_transaksi']}
+                st.caption(
+                    str(row["tanggal_transaksi"])
+                )
 
-                    <br>
-
-                    <small>
-                    {row['tanggal_transaksi']}
-                    </small>
-
-                    <br>
-
-                    <b>
-                    {format_currency(row['amount'])}
-                    </b>
-
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                st.markdown(
+                    f"**{format_currency(row['amount'])}**"
+                )
 
     else:
 
