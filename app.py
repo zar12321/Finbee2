@@ -162,26 +162,26 @@ st.markdown(
 
 if not is_logged_in():
 
-    auth_menu = st.sidebar.radio(
-        "Authentication",
-        [
-            "Login",
-            "Register",
-            "Reset Password"
-        ]
+    page = st.session_state.get(
+        "current_page",
+        "login"
     )
 
-    if auth_menu == "Login":
+    if page == "login":
 
         render_login_page()
 
-    elif auth_menu == "Register":
+    elif page == "register":
 
         render_register_page()
 
-    elif auth_menu == "Reset Password":
+    elif page == "reset_password":
 
         render_reset_password_page()
+
+    else:
+
+        render_login_page()
 
     st.stop()
 
