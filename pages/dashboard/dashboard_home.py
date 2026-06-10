@@ -279,8 +279,7 @@ def render_dashboard_home():
             )
 
             fig.update_traces(
-                textposition="outside", 
-                marker_color = "#8B5CF6"
+                textposition="outside"
             )
 
             fig.update_layout(
