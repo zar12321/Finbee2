@@ -228,8 +228,7 @@ def render_dashboard_home():
 
             fig.update_traces(
                 textposition="inside",
-                textinfo="percent+label", 
-                marker_color = "#8B5CF6"
+                textinfo="percent+label" 
             )
 
             fig.update_layout(
