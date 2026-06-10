@@ -125,7 +125,7 @@ st.set_page_config(
 
 init_session()
 
-apply_theme()
+#apply_theme()
 
 st.markdown(
     """
