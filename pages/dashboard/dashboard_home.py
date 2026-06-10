@@ -481,39 +481,236 @@ def render_dashboard_home():
                 "tanggal_transaksi",
                 ascending=False
             )
-            .head(10)
         )
 
-        for _, row in recent_df.iterrows():
+        # ==========================================
+        # FILTER
+        # ==========================================
 
-            icon = (
-                "📈"
-                if row["transaction_type"] == "income"
-                else "📉"
+        filter1, filter2 = st.columns(2)
+
+        with filter1:
+
+            periode = st.selectbox(
+                "📅 Periode",
+                [
+                    "Hari Ini",
+                    "7 Hari Terakhir",
+                    "30 Hari Terakhir",
+                    "Semua"
+                ]
             )
 
-            with st.container(border=True):
+        with filter2:
 
-                st.markdown(
-                    f"**{icon} {row['category_name']}**"
+            kategori_filter = st.multiselect(
+                "📂 Kategori",
+                sorted(
+                    recent_df["category_name"]
+                    .dropna()
+                    .unique()
+                )
+            )
+
+        filter3, filter4 = st.columns(2)
+
+        with filter3:
+
+            metode_filter = st.multiselect(
+                "💳 Metode Pembayaran",
+                sorted(
+                    recent_df["payment_method"]
+                    .dropna()
+                    .unique()
+                )
+            )
+
+        with filter4:
+
+            tipe_filter = st.multiselect(
+                "📊 Jenis",
+                [
+                    "income",
+                    "expense"
+                ],
+                default=[
+                    "income",
+                    "expense"
+                ]
+            )
+
+        search_text = st.text_input(
+            "🔍 Cari tujuan transaksi"
+        )
+
+        # ==========================================
+        # FILTERING
+        # ==========================================
+
+        filtered_df = recent_df.copy()
+
+        today = pd.Timestamp.now().normalize()
+
+        if periode == "Hari Ini":
+
+            filtered_df = filtered_df[
+                filtered_df["tanggal_transaksi"].dt.normalize()
+                == today
+            ]
+
+        elif periode == "7 Hari Terakhir":
+
+            filtered_df = filtered_df[
+                filtered_df["tanggal_transaksi"]
+                >= today - pd.Timedelta(days=7)
+            ]
+
+        elif periode == "30 Hari Terakhir":
+
+            filtered_df = filtered_df[
+                filtered_df["tanggal_transaksi"]
+                >= today - pd.Timedelta(days=30)
+            ]
+
+        filtered_df = filtered_df[
+            filtered_df["transaction_type"]
+            .isin(tipe_filter)
+        ]
+
+        if kategori_filter:
+
+            filtered_df = filtered_df[
+                filtered_df["category_name"]
+                .isin(kategori_filter)
+            ]
+
+        if metode_filter:
+
+            filtered_df = filtered_df[
+                filtered_df["payment_method"]
+                .isin(metode_filter)
+            ]
+
+        if search_text:
+
+            filtered_df = filtered_df[
+                filtered_df["tujuan_transaksi"]
+                .str.contains(
+                    search_text,
+                    case=False,
+                    na=False
+                )
+            ]
+
+        # ==========================================
+        # SUMMARY
+        # ==========================================
+
+        income_filtered = (
+            filtered_df[
+                filtered_df["transaction_type"]
+                == "income"
+            ]["amount"]
+            .sum()
+        )
+
+        expense_filtered = (
+            filtered_df[
+                filtered_df["transaction_type"]
+                == "expense"
+            ]["amount"]
+            .sum()
+        )
+
+        summary1, summary2, summary3, summary4 = st.columns(4)
+
+        with summary1:
+            st.metric(
+                "📈 Income",
+                format_currency(income_filtered)
+            )
+
+        with summary2:
+            st.metric(
+                "📉 Expense",
+                format_currency(expense_filtered)
+            )
+
+        with summary3:
+            st.metric(
+                "💰 Net",
+                format_currency(
+                    income_filtered -
+                    expense_filtered
+                )
+            )
+
+        with summary4:
+            st.metric(
+                "📋 Jumlah",
+                len(filtered_df)
+            )
+
+        st.markdown("---")
+
+        # ==========================================
+        # LIST TRANSAKSI
+        # ==========================================
+
+        if not filtered_df.empty:
+
+            for _, row in filtered_df.iterrows():
+
+                icon = (
+                    "📈"
+                    if row["transaction_type"] == "income"
+                    else "📉"
                 )
 
-                st.write(
-                    row["tujuan_transaksi"]
-                )
+                with st.container(border=True):
 
-                st.caption(
-                    str(row["tanggal_transaksi"])
-                )
+                    col1, col2 = st.columns(
+                        [4,1]
+                    )
 
-                st.markdown(
-                    f"**{format_currency(row['amount'])}**"
-                )
+                    with col1:
+
+                        st.markdown(
+                            f"### {icon} {row['category_name']}"
+                        )
+
+                        st.caption(
+                            row["tujuan_transaksi"]
+                        )
+
+                        st.write(
+                            f"💳 {row['payment_method']}"
+                        )
+
+                        st.write(
+                            row["tanggal_transaksi"]
+                            .strftime(
+                                "%d %B %Y"
+                            )
+                        )
+
+                    with col2:
+
+                        st.metric(
+                            "Nominal",
+                            format_currency(
+                                row["amount"]
+                            )
+                        )
+
+        else:
+
+            st.info(
+                "Tidak ada transaksi sesuai filter."
+            )
 
     else:
 
         st.info(
             "Belum ada aktivitas."
         )
-
-    st.markdown("<br><br>", unsafe_allow_html=True)
