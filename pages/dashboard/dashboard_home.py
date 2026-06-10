@@ -223,11 +223,26 @@ def render_dashboard_home():
                 category_df,
                 values="amount",
                 names="category_name",
-                hole=0.45
+                hole=0.65
+            )
+
+            fig.update_traces(
+                textposition="inside",
+                textinfo="percent+label"
             )
 
             fig.update_layout(
-                height=400
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font_color="white",
+                showlegend=True,
+                margin=dict(
+                    l=0,
+                    r=0,
+                    t=20,
+                    b=0
+                ),
+                height=350
             )
 
             st.plotly_chart(
