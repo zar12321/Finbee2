@@ -204,19 +204,19 @@ render_navbar(user_name)
 # DASHBOARD MENU
 # ==========================================================
 
-if selected_page == "Dashboard":
+if selected_page == "dashboard":
 
     render_dashboard_home()
 
-elif selected_page == "Tambah Transaksi":
+elif selected_page == "tambah_transaksi":
 
     render_tambah_transaksi()
 
-elif selected_page == "Import File":
+elif selected_page == "import_file":
 
     render_import_file()
 
-elif selected_page == "Analisis & Prediksi":
+elif selected_page == "analisis_prediksi":
 
     render_analisis_prediksi()
 
