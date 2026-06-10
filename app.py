@@ -8,8 +8,7 @@ import streamlit as st
 
 from config.settings import (
     APP_NAME,
-    PAGE_TITLE,
-    PAGE_ICON,
+    APP_ICON,
     LAYOUT,
     SIDEBAR_STATE
 )
@@ -113,8 +112,8 @@ from pages.ai.settings import (
 # ==========================================================
 
 st.set_page_config(
-    page_title=PAGE_TITLE,
-    page_icon=PAGE_ICON,
+    page_title=APP_NAME,
+    page_icon=APP_ICON,
     layout=LAYOUT,
     initial_sidebar_state=SIDEBAR_STATE
 )
