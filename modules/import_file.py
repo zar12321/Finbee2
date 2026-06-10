@@ -55,17 +55,22 @@ def clean_amount(value):
 
     return amount
 
-
 def parse_flexible_date(value):
+
     if pd.isna(value):
         return pd.NaT
 
-    date_value = pd.to_datetime(value, errors="coerce")
+    try:
 
-    if pd.isna(date_value):
-        date_value = pd.to_datetime(value, errors="coerce", dayfirst=True)
+        return pd.to_datetime(
+            value,
+            errors="coerce",
+            dayfirst=False
+        )
 
-    return date_value
+    except Exception:
+
+        return pd.NaT
 
 
 def normalize_transaction_type(value):
