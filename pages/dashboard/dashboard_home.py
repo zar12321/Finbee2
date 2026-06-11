@@ -435,7 +435,7 @@ def render_dashboard_home():
                 plot_bgcolor="rgba(0,0,0,0)",
                 font_color="white",
                 xaxis_title="",
-                yaxis_title="Total Pengeluaran",
+                yaxis_title="Total Pembayaran",
                 showlegend=False,
                 margin=dict(
                     l=0,
