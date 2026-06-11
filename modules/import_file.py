@@ -289,7 +289,6 @@ def auto_clean_financial_file(df):
         [
             "transaction type",
             "jenis transaksi",
-            "transaksi",
             "arus kas",
             "cashflow",
             "cash flow",
