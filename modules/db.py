@@ -452,7 +452,11 @@ def update_transaction(
     amount,
     raw_category=None
 ):
+
     engine = get_engine()
+
+    if hasattr(tanggal_transaksi, "to_pydatetime"):
+        tanggal_transaksi = tanggal_transaksi.to_pydatetime()
 
     query = text("""
         UPDATE transactions
@@ -470,17 +474,21 @@ def update_transaction(
     """)
 
     with engine.begin() as conn:
-        result = conn.execute(query, {
-            "transaction_id": transaction_id,
-            "user_id": user_id,
-            "category_id": category_id,
-            "tanggal_transaksi": tanggal_transaksi,
-            "transaction_type": transaction_type,
-            "tujuan_transaksi": tujuan_transaksi,
-            "keterangan": keterangan,
-            "payment_method": payment_method,
-            "amount": amount,
-            "raw_category": raw_category
-        })
+
+        result = conn.execute(
+            query,
+            {
+                "transaction_id": int(transaction_id),
+                "user_id": int(user_id),
+                "category_id": int(category_id),
+                "tanggal_transaksi": tanggal_transaksi,
+                "transaction_type": str(transaction_type),
+                "tujuan_transaksi": str(tujuan_transaksi),
+                "keterangan": str(keterangan) if keterangan else "",
+                "payment_method": str(payment_method),
+                "amount": float(amount),
+                "raw_category": raw_category
+            }
+        )
 
     return result.rowcount
