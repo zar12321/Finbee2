@@ -692,71 +692,76 @@ def render_dashboard_home():
 
                         st.markdown(
                             f"""
-                            <div style="font-size:14px;color:#94A3B8;">
+                            <div style="
+                                font-size:30px;
+                                font-weight:800;
+                                color:white;
+                                margin-bottom:8px;
+                            ">
                                 {icon} {row['category_name']}
                             </div>
 
                             <div style="
                                 font-size:22px;
-                                font-weight:700;
-                                color:white;
-                                margin-top:4px;
-                                margin-bottom:6px;
+                                font-weight:600;
+                                color:#CBD5E1;
+                                margin-bottom:12px;
                             ">
                                 {row['tujuan_transaksi']}
                             </div>
 
                             <div style="
                                 font-size:15px;
-                                color:#CBD5E1;
-                                margin-bottom:10px;
+                                color:#94A3B8;
+                                margin-bottom:16px;
                             ">
                                 {row['keterangan']}
                             </div>
 
-                            <div style="font-size:14px;color:#94A3B8;">
+                            <div style="
+                                font-size:14px;
+                                color:#CBD5E1;
+                                margin-bottom:4px;
+                            ">
                                 💳 {row['payment_method']}
                             </div>
 
-                            <div style="font-size:13px;color:#64748B;">
+                            <div style="
+                                font-size:13px;
+                                color:#64748B;
+                            ">
                                 📅 {row['tanggal_transaksi'].strftime('%d %B %Y')}
                             </div>
                             """,
                             unsafe_allow_html=True
                         )
-                    
+                                        
                     with col2:
 
                         st.markdown(
                             f"""
                             <div style="
-                                height:100%;
-                                display:flex;
-                                align-items:center;
-                                justify-content:center;
+                                background:#111827;
+                                border:1px solid #1E293B;
+                                border-radius:18px;
+                                padding:24px;
+                                text-align:center;
+                                margin-top:30px;
                             ">
                                 <div style="
-                                    background:#111827;
-                                    border:1px solid #1E293B;
-                                    border-radius:16px;
-                                    padding:16px;
-                                    text-align:center;
-                                    width:100%;
+                                    color:#94A3B8;
+                                    font-size:13px;
+                                    margin-bottom:10px;
                                 ">
-                                    <div style="
-                                        color:#94A3B8;
-                                        font-size:12px;
-                                    ">
-                                        Nominal
-                                    </div>
+                                    Nominal
+                                </div>
 
-                                    <div style="
-                                        color:#7CFF5B;
-                                        font-size:18px;
-                                        font-weight:700;
-                                    ">
-                                        {format_currency(row['amount'])}
-                                    </div>
+                                <div style="
+                                    color:#7CFF5B;
+                                    font-size:26px;
+                                    font-weight:800;
+                                ">
+                                    {format_currency(row['amount'])}
                                 </div>
                             </div>
                             """,
