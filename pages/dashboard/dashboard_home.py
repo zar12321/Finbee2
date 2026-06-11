@@ -566,7 +566,7 @@ def render_dashboard_home():
     # ======================================================
 
     st.subheader(
-        "🕒 Aktivitas Terbaru"
+        "🕒 List Transaksi"
     )
 
     if not transactions_df.empty:
