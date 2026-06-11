@@ -982,12 +982,7 @@ def render_dashboard_home():
                         ]
 
                         st.rerun()
-                else:
-
-                    st.info(
-                        "Tidak ada transaksi sesuai filter."
-                    )
-
+                        
     else:
 
         st.info(
