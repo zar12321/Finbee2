@@ -693,42 +693,45 @@ def render_dashboard_home():
                         st.markdown(
                             f"""
                             <div style="
-                                font-size:28px;
+                                font-size:30px;
                                 font-weight:800;
                                 color:white;
-                                margin-bottom:8px;
+                                margin-bottom:12px;
                             ">
                                 {icon} {row['category_name']}
                             </div>
 
                             <div style="
-                                font-size:22px;
+                                font-size:24px;
                                 font-weight:700;
                                 color:#E2E8F0;
-                                margin-bottom:10px;
+                                margin-bottom:14px;
                             ">
                                 {row['tujuan_transaksi']}
                             </div>
 
                             <div style="
-                                font-size:16px;
+                                font-size:18px;
                                 color:#CBD5E1;
-                                margin-bottom:14px;
+                                line-height:1.7;
+                                margin-bottom:22px;
                             ">
                                 {row['keterangan']}
                             </div>
 
                             <div style="
-                                font-size:15px;
-                                color:#94A3B8;
-                                margin-bottom:6px;
+                                font-size:18px;
+                                font-weight:600;
+                                color:#CBD5E1;
+                                margin-bottom:12px;
                             ">
                                 💳 {row['payment_method']}
                             </div>
 
                             <div style="
-                                font-size:14px;
-                                color:#64748B;
+                                font-size:16px;
+                                color:#94A3B8;
+                                margin-bottom:30px;
                             ">
                                 📅 {row['tanggal_transaksi'].strftime('%d %B %Y')}
                             </div>
