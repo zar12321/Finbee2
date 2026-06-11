@@ -157,6 +157,7 @@ def delete_transaction_dialog(row):
             "❌ Batal",
             use_container_width=True
         ):
+            del st.session_state["delete_transaction_id"]
             st.rerun()
 
     with col2:
@@ -832,7 +833,8 @@ def render_dashboard_home():
                                 key=f"edit_{row['transaction_id']}",
                                 use_container_width=True
                             ):
-                                st.session_state["edit_transaction_id"] = row["transaction_id"]
+                                st.session_state.edit_transaction_id = row["transaction_id"]
+                                st.rerun()
 
                         with btn2:
                             if st.button(
@@ -840,13 +842,42 @@ def render_dashboard_home():
                                 key=f"delete_{row['transaction_id']}",
                                 use_container_width=True
                             ):
-                                st.session_state["delete_transaction_id"] = row["transaction_id"]
+                                st.session_state.delete_transaction_id = row["transaction_id"]
+                                st.rerun()
 
         else:
 
             st.info(
                 "Tidak ada transaksi sesuai filter."
             )
+
+        # ==========================================
+        # POPUP EDIT
+        # ==========================================
+        if "edit_transaction_id" in st.session_state:
+            selected_row = filtered_df[
+                filtered_df["transaction_id"] 
+                == st.session_state["edit_transaction_id"]
+            ]
+
+            if not selected_row.empty:
+                edit_transaction_dialog(
+                    selected_row.iloc[0]
+                )
+        
+        # ==========================================
+        # POPUP DELETE
+        # ==========================================
+        if "delete_transaction_id" in st.session_state:
+            selected_row = filtered_df[
+                filtered_df["transaction_id"]
+                == st.session_state["delete_transaction_id"]
+            ]
+
+            if not selected_row.empty:
+                delete_transaction_dialog(
+                    selected_row.iloc[0]
+                )
 
 
     else:
