@@ -12,7 +12,7 @@ def render_footer():
     st.markdown(
         """
         <div class="footer">
-            FinBee Personal Finance Dashboard
+            FinBee: Smart Finance Busy Bee 
         </div>
         """,
         unsafe_allow_html=True

@@ -135,6 +135,7 @@ with st.sidebar:
     st.write("SIDEBAR TEST")
     st.button("TEST BUTTON")
 
+    # Nambahin button hapus semua transaksi di sidebar 
     if st.sidebar.button(
         "Hapus semua transaksi", 
         use_container_width=True
