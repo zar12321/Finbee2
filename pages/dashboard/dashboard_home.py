@@ -833,7 +833,16 @@ def render_dashboard_home():
                                 key=f"edit_{row['transaction_id']}",
                                 use_container_width=True
                             ):
-                                st.session_state.edit_transaction_id = row["transaction_id"]
+
+                                st.session_state.pop(
+                                    "delete_transaction_id",
+                                    None
+                                )
+
+                                st.session_state.edit_transaction_id = (
+                                    row["transaction_id"]
+                                )
+
                                 st.rerun()
 
                         with btn2:
@@ -842,7 +851,16 @@ def render_dashboard_home():
                                 key=f"delete_{row['transaction_id']}",
                                 use_container_width=True
                             ):
-                                st.session_state.delete_transaction_id = row["transaction_id"]
+
+                                st.session_state.pop(
+                                    "edit_transaction_id",
+                                    None
+                                )
+
+                                st.session_state.delete_transaction_id = (
+                                    row["transaction_id"]
+                                )
+
                                 st.rerun()
 
         else:
