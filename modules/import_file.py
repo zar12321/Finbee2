@@ -114,7 +114,7 @@ def normalize_transaction_type(value):
         "credit": "income",
         "kredit": "income",
         "in": "income",
-        "revenue": "income"
+        "revenue": "income",
 
         "topup": "topup", 
         "top up": "topup", 
