@@ -691,31 +691,76 @@ def render_dashboard_home():
                     with col1:
 
                         st.markdown(
-                            f"### {icon} {row['category_name']}"
-                        )
+                            f"""
+                            <div style="font-size:14px;color:#94A3B8;">
+                                {icon} {row['category_name']}
+                            </div>
 
-                        st.caption(
-                            row["tujuan_transaksi"]
-                        )
+                            <div style="
+                                font-size:22px;
+                                font-weight:700;
+                                color:white;
+                                margin-top:4px;
+                                margin-bottom:6px;
+                            ">
+                                {row['tujuan_transaksi']}
+                            </div>
 
-                        st.write(
-                            f"💳 {row['payment_method']}"
-                        )
+                            <div style="
+                                font-size:15px;
+                                color:#CBD5E1;
+                                margin-bottom:10px;
+                            ">
+                                {row['keterangan']}
+                            </div>
 
-                        st.write(
-                            row["tanggal_transaksi"]
-                            .strftime(
-                                "%d %B %Y"
-                            )
-                        )
+                            <div style="font-size:14px;color:#94A3B8;">
+                                💳 {row['payment_method']}
+                            </div>
 
+                            <div style="font-size:13px;color:#64748B;">
+                                📅 {row['tanggal_transaksi'].strftime('%d %B %Y')}
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                    
                     with col2:
 
-                        st.metric(
-                            "Nominal",
-                            format_currency(
-                                row["amount"]
-                            )
+                        st.markdown(
+                            f"""
+                            <div style="
+                                height:100%;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                            ">
+                                <div style="
+                                    background:#111827;
+                                    border:1px solid #1E293B;
+                                    border-radius:16px;
+                                    padding:16px;
+                                    text-align:center;
+                                    width:100%;
+                                ">
+                                    <div style="
+                                        color:#94A3B8;
+                                        font-size:12px;
+                                    ">
+                                        Nominal
+                                    </div>
+
+                                    <div style="
+                                        color:#7CFF5B;
+                                        font-size:18px;
+                                        font-weight:700;
+                                    ">
+                                        {format_currency(row['amount'])}
+                                    </div>
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
                         )
 
         else:
