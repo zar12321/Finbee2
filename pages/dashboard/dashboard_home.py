@@ -635,8 +635,12 @@ def render_dashboard_home():
                 ]
             )
 
-        search_text = st.text_input(
+        search_tujuan_transaksi_text = st.text_input(
             "🔍 Cari tujuan transaksi"
+        )
+
+        search_keterangan_transaksi_text = st.text_input(
+            "🔍 Cari keterangan transaksi"
         )
 
         # ==========================================
@@ -687,16 +691,28 @@ def render_dashboard_home():
                 .isin(metode_filter)
             ]
 
-        if search_text:
+        if search_tujuan_transaksi_text:
 
             filtered_df = filtered_df[
                 filtered_df["tujuan_transaksi"]
                 .str.contains(
-                    search_text,
+                    search_tujuan_transaksi_text,
                     case=False,
                     na=False
                 )
             ]
+        
+        if search_keterangan_transaksi_text:
+
+            filtered_df = filtered_df[
+                filtered_df["keterangan"]
+                .str.contains(
+                    search_keterangan_transaksi_text,
+                    case=False,
+                    na=False
+                )
+            ]
+        
 
         # ==========================================
         # SUMMARY
