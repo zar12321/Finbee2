@@ -411,25 +411,32 @@ def load_monthly_plan(user_id, bulan, tahun):
 
     return row
 
+from sqlalchemy import text
+
 def delete_transactions(transaction_ids, user_id):
+
     engine = get_engine()
 
     if len(transaction_ids) == 0:
         return 0
 
+    transaction_id = int(transaction_ids[0])
+
     query = text("""
         DELETE FROM transactions
-        WHERE transaction_id IN :transaction_ids
+        WHERE transaction_id = :transaction_id
           AND user_id = :user_id
-    """).bindparams(
-        bindparam("transaction_ids", expanding=True)
-    )
+    """)
 
     with engine.begin() as conn:
-        result = conn.execute(query, {
-            "transaction_ids": transaction_ids,
-            "user_id": user_id
-        })
+
+        result = conn.execute(
+            query,
+            {
+                "transaction_id": transaction_id,
+                "user_id": int(user_id)
+            }
+        )
 
     return result.rowcount
 
