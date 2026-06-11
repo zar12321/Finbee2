@@ -411,8 +411,9 @@ def load_monthly_plan(user_id, bulan, tahun):
 
     return row
 
-from sqlalchemy import text
 
+# delete transaction di list transaksi pada halaman dashboard_home
+from sqlalchemy import text
 def delete_transactions(transaction_ids, user_id):
 
     engine = get_engine()
@@ -438,6 +439,26 @@ def delete_transactions(transaction_ids, user_id):
             }
         )
 
+    return result.rowcount
+
+# delete all transaction
+def delete_all_transaction(user_id):
+    engine = get_engine()
+
+    query = text("""
+
+        delete from transactions
+                 where user_id = :user_id
+    """)
+
+    with engine.begin() as conn:
+        result = conn.execute(
+            query, 
+            {
+                "user_id": int(user_id)
+            }
+        )
+    
     return result.rowcount
 
 def update_transaction(

@@ -9,7 +9,8 @@ from modules.db import (
     load_transactions,
     load_monthly_plan, 
     delete_transactions, 
-    update_transaction
+    update_transaction, 
+    delete_all_transaction
 )
 
 from modules.analysis import (

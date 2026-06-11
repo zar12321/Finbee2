@@ -25,8 +25,14 @@ from state.session import (
     init_session,
     is_logged_in,
     logout_user,
-    get_current_user_name
+    get_current_user_name, 
+    get_current_user_id
 )
+
+# ==========================================================
+# DELETE ALL TRANSACTIONS
+# ==========================================================
+from modules.db import delete_all_transaction
 
 # ==========================================================
 # COMPONENTS
@@ -128,6 +134,21 @@ init_session()
 with st.sidebar:
     st.write("SIDEBAR TEST")
     st.button("TEST BUTTON")
+
+    if st.sidebar.button(
+        "Hapus semua transaksi", 
+        use_container_width=True
+    ):
+        deleted = delete_all_transaction(
+            get_current_user_id()
+        )
+
+        st.sidebar.success(
+            f"{deleted} transaksi berhasil dihapus"
+        )
+
+        st.rerun()
+
 
 apply_theme()
 
