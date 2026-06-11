@@ -743,36 +743,26 @@ def render_dashboard_home():
 
                         st.metric(
                             "Nominal",
-                            format_currency(
-                                row["amount"]
-                            )
+                            format_currency(row["amount"])
                         )
 
-                    action_col1, action_col2 = st.columns(2)
+                        btn1, btn2 = st.columns(2)
 
-                    with action_col1:
+                        with btn1:
+                            if st.button(
+                                "✏️",
+                                key=f"edit_{row['transaction_id']}",
+                                use_container_width=True
+                            ):
+                                st.session_state["edit_transaction_id"] = row["transaction_id"]
 
-                        if st.button(
-                            "✏️ Edit",
-                            key=f"edit_{row['transaction_id']}",
-                            use_container_width=True
-                        ):
-
-                            st.session_state[
-                                "edit_transaction_id"
-                            ] = row["transaction_id"]
-
-                    with action_col2:
-
-                        if st.button(
-                            "🗑️ Hapus",
-                            key=f"delete_{row['transaction_id']}",
-                            use_container_width=True
-                        ):
-
-                            st.session_state[
-                                "delete_transaction_id"
-                            ] = row["transaction_id"]
+                        with btn2:
+                            if st.button(
+                                "🗑️",
+                                key=f"delete_{row['transaction_id']}",
+                                use_container_width=True
+                            ):
+                                st.session_state["delete_transaction_id"] = row["transaction_id"]
 
         else:
 
@@ -982,7 +972,7 @@ def render_dashboard_home():
                         ]
 
                         st.rerun()
-                        
+
     else:
 
         st.info(
