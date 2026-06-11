@@ -628,11 +628,13 @@ def render_dashboard_home():
                 "📊 Jenis",
                 [
                     "income",
-                    "expense"
+                    "expense", 
+                    "topup"
                 ],
                 default=[
                     "income",
-                    "expense"
+                    "expense", 
+                    "topup"
                 ]
             )
 
