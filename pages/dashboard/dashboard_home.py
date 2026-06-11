@@ -693,7 +693,7 @@ def render_dashboard_home():
                         st.markdown(
                             f"""
                             <div style="
-                                font-size:30px;
+                                font-size:28px;
                                 font-weight:800;
                                 color:white;
                                 margin-bottom:8px;
@@ -703,31 +703,31 @@ def render_dashboard_home():
 
                             <div style="
                                 font-size:22px;
-                                font-weight:600;
-                                color:#CBD5E1;
-                                margin-bottom:12px;
+                                font-weight:700;
+                                color:#E2E8F0;
+                                margin-bottom:10px;
                             ">
                                 {row['tujuan_transaksi']}
                             </div>
 
                             <div style="
-                                font-size:15px;
-                                color:#94A3B8;
-                                margin-bottom:16px;
+                                font-size:16px;
+                                color:#CBD5E1;
+                                margin-bottom:14px;
                             ">
                                 {row['keterangan']}
                             </div>
 
                             <div style="
-                                font-size:14px;
-                                color:#CBD5E1;
-                                margin-bottom:4px;
+                                font-size:15px;
+                                color:#94A3B8;
+                                margin-bottom:6px;
                             ">
                                 💳 {row['payment_method']}
                             </div>
 
                             <div style="
-                                font-size:13px;
+                                font-size:14px;
                                 color:#64748B;
                             ">
                                 📅 {row['tanggal_transaksi'].strftime('%d %B %Y')}
@@ -738,34 +738,11 @@ def render_dashboard_home():
                                         
                     with col2:
 
-                        st.markdown(
-                            f"""
-                            <div style="
-                                background:#111827;
-                                border:1px solid #1E293B;
-                                border-radius:18px;
-                                padding:24px;
-                                text-align:center;
-                                margin-top:30px;
-                            ">
-                                <div style="
-                                    color:#94A3B8;
-                                    font-size:13px;
-                                    margin-bottom:10px;
-                                ">
-                                    Nominal
-                                </div>
-
-                                <div style="
-                                    color:#7CFF5B;
-                                    font-size:26px;
-                                    font-weight:800;
-                                ">
-                                    {format_currency(row['amount'])}
-                                </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
+                        st.metric(
+                            "Nominal",
+                            format_currency(
+                                row["amount"]
+                            )
                         )
 
         else:
