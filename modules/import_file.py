@@ -115,6 +115,11 @@ def normalize_transaction_type(value):
         "kredit": "income",
         "in": "income",
         "revenue": "income"
+
+        "topup": "topup", 
+        "top up": "topup", 
+        "isi saldo": "topup", 
+        "e-wallet": "topup"
     }
 
     result = type_mapping.get(text, "expense")
@@ -129,6 +134,9 @@ def standardize_category(raw_category, description="", transaction_type="expense
     description = "" if pd.isna(description) else str(description)
 
     text = f"{raw_category} {description}".lower()
+
+    if transaction_type == "topup":
+        return "Topup"
 
     if transaction_type == "income":
         if any(word in text for word in [
