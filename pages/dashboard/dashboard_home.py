@@ -636,11 +636,13 @@ def render_dashboard_home():
             )
 
         search_tujuan_transaksi_text = st.text_input(
-            "🔍 Cari tujuan transaksi"
+            "🔍 Cari tujuan transaksi", 
+            placeholder="makan"
         )
 
         search_keterangan_transaksi_text = st.text_input(
-            "🔍 Cari keterangan transaksi"
+            "🔍 Cari keterangan transaksi", 
+            placeholder="nasi padang"
         )
 
         # ==========================================
