@@ -87,32 +87,26 @@ def parse_flexible_date(value):
         errors="coerce"
     )
 
-
 def normalize_transaction_type(value):
+
+    print("RAW =", repr(value))
+
     if pd.isna(value):
         return "expense"
 
     text = str(value).strip().lower()
 
-    type_mapping = {
-        "expense": "expense",
-        "pengeluaran": "expense",
-        "keluar": "expense",
-        "debit": "expense",
-        "debet": "expense",
-        "out": "expense",
-        "outcome": "expense",
+    print("NORMALIZED =", repr(text))
 
-        "income": "income",
-        "pemasukan": "income",
-        "masuk": "income",
-        "credit": "income",
-        "kredit": "income",
-        "in": "income",
-        "revenue": "income"
+    type_mapping = {
+        ...
     }
 
-    return type_mapping.get(text, "expense")
+    result = type_mapping.get(text, "expense")
+
+    print("RESULT =", result)
+
+    return result
 
 
 def standardize_category(raw_category, description="", transaction_type="expense"):
