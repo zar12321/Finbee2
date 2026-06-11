@@ -729,7 +729,7 @@ def render_dashboard_home():
                             </div>
 
                             <div style="
-                                font-size:16px;
+                                font-size:21px;
                                 color:#94A3B8;
                                 margin-bottom:30px;
                             ">
