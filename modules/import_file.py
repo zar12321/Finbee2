@@ -98,8 +98,23 @@ def normalize_transaction_type(value):
 
     print("NORMALIZED =", repr(text))
 
+
     type_mapping = {
-        ...
+        "expense": "expense",
+        "pengeluaran": "expense",
+        "keluar": "expense",
+        "debit": "expense",
+        "debet": "expense",
+        "out": "expense",
+        "outcome": "expense",
+
+        "income": "income",
+        "pemasukan": "income",
+        "masuk": "income",
+        "credit": "income",
+        "kredit": "income",
+        "in": "income",
+        "revenue": "income"
     }
 
     result = type_mapping.get(text, "expense")
