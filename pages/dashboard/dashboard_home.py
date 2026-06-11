@@ -96,6 +96,84 @@ def load_user_transactions():
 # ==========================================================
 # MAIN PAGE
 # ==========================================================
+@st.dialog("✏️ Edit Transaksi")
+def edit_transaction_dialog(row):
+
+    st.write("Edit data transaksi")
+
+    tujuan = st.text_input(
+        "Tujuan",
+        value=row["tujuan_transaksi"]
+    )
+
+    keterangan = st.text_area(
+        "Keterangan",
+        value=row["keterangan"]
+    )
+
+    payment_method = st.text_input(
+        "Metode Pembayaran",
+        value=row["payment_method"]
+    )
+
+    amount = st.number_input(
+        "Nominal",
+        value=float(row["amount"])
+    )
+
+    if st.button(
+        "💾 Simpan Perubahan",
+        use_container_width=True
+    ):
+
+        update_transaction(
+            transaction_id=row["transaction_id"],
+            user_id=row["user_id"],
+            category_id=row["category_id"],
+            tanggal_transaksi=row["tanggal_transaksi"],
+            transaction_type=row["transaction_type"],
+            tujuan_transaksi=tujuan,
+            keterangan=keterangan,
+            payment_method=payment_method,
+            amount=amount,
+            raw_category=row["raw_category"]
+        )
+
+        st.success("Transaksi berhasil diperbarui")
+        st.rerun()
+
+@st.dialog("🗑️ Hapus Transaksi")
+def delete_transaction_dialog(row):
+
+    st.warning(
+        f"Yakin ingin menghapus transaksi '{row['tujuan_transaksi']}' ?"
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        if st.button(
+            "❌ Batal",
+            use_container_width=True
+        ):
+            st.rerun()
+
+    with col2:
+
+        if st.button(
+            "🗑️ Hapus",
+            use_container_width=True
+        ):
+
+            delete_transactions(
+                [row["transaction_id"]],
+                row["user_id"]
+            )
+
+            st.success("Transaksi berhasil dihapus")
+            st.rerun()
+
 
 def render_dashboard_home():
 
@@ -770,208 +848,6 @@ def render_dashboard_home():
                 "Tidak ada transaksi sesuai filter."
             )
 
-
-        # ======================================================
-        # DELETE TRANSACTION
-        # ======================================================
-
-        if "delete_transaction_id" in st.session_state:
-
-            with st.container(border=True):
-
-                st.error(
-                    "🗑️ Yakin ingin menghapus transaksi ini?"
-                )
-
-                col1, col2 = st.columns(2)
-
-                with col1:
-
-                    if st.button(
-                        "✅ Ya, Hapus",
-                        use_container_width=True,
-                        key="confirm_delete"
-                    ):
-
-                        delete_transactions(
-                            [
-                                st.session_state[
-                                    "delete_transaction_id"
-                                ]
-                            ],
-                            user_id
-                        )
-
-                        del st.session_state[
-                            "delete_transaction_id"
-                        ]
-
-                        st.success(
-                            "Transaksi berhasil dihapus."
-                        )
-
-                        st.rerun()
-
-                with col2:
-
-                    if st.button(
-                        "❌ Batal",
-                        use_container_width=True,
-                        key="cancel_delete"
-                    ):
-
-                        del st.session_state[
-                            "delete_transaction_id"
-                        ]
-
-                        st.rerun()
-
-
-        # ======================================================
-        # EDIT TRANSACTION
-        # ======================================================
-
-        if "edit_transaction_id" in st.session_state:
-
-            transaction_id = (
-                st.session_state[
-                    "edit_transaction_id"
-                ]
-            )
-
-            edit_df = transactions_df[
-                transactions_df["transaction_id"]
-                == transaction_id
-            ]
-
-            if not edit_df.empty:
-
-                edit_row = edit_df.iloc[0]
-
-                with st.container(border=True):
-
-                    st.subheader(
-                        "✏️ Edit Transaksi"
-                    )
-
-                    with st.form(
-                        "edit_transaction_form"
-                    ):
-
-                        tujuan_transaksi = (
-                            st.text_input(
-                                "Tujuan Transaksi",
-                                value=edit_row[
-                                    "tujuan_transaksi"
-                                ]
-                            )
-                        )
-
-                        keterangan = (
-                            st.text_area(
-                                "Keterangan",
-                                value=edit_row[
-                                    "keterangan"
-                                ]
-                            )
-                        )
-
-                        payment_method = (
-                            st.text_input(
-                                "Metode Pembayaran",
-                                value=edit_row[
-                                    "payment_method"
-                                ]
-                            )
-                        )
-
-                        amount = (
-                            st.number_input(
-                                "Nominal",
-                                min_value=0.0,
-                                value=float(
-                                    edit_row["amount"]
-                                )
-                            )
-                        )
-
-                        save_col, cancel_col = st.columns(2)
-
-                        with save_col:
-
-                            save_btn = (
-                                st.form_submit_button(
-                                    "💾 Simpan",
-                                    use_container_width=True
-                                )
-                            )
-
-                        with cancel_col:
-
-                            cancel_btn = (
-                                st.form_submit_button(
-                                    "❌ Batal",
-                                    use_container_width=True
-                                )
-                            )
-
-                    if save_btn:
-
-                        update_transaction(
-
-                            transaction_id=
-                                edit_row["transaction_id"],
-
-                            user_id=user_id,
-
-                            category_id=
-                                edit_row["category_id"],
-
-                            tanggal_transaksi=
-                                edit_row[
-                                    "tanggal_transaksi"
-                                ],
-
-                            transaction_type=
-                                edit_row[
-                                    "transaction_type"
-                                ],
-
-                            tujuan_transaksi=
-                                tujuan_transaksi,
-
-                            keterangan=
-                                keterangan,
-
-                            payment_method=
-                                payment_method,
-
-                            amount=
-                                amount,
-
-                            raw_category=
-                                edit_row[
-                                    "raw_category"
-                                ]
-                        )
-
-                        del st.session_state[
-                            "edit_transaction_id"
-                        ]
-
-                        st.success(
-                            "Transaksi berhasil diperbarui."
-                        )
-
-                        st.rerun()
-
-                    if cancel_btn:
-
-                        del st.session_state[
-                            "edit_transaction_id"
-                        ]
-
-                        st.rerun()
 
     else:
 
