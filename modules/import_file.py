@@ -410,6 +410,12 @@ def auto_clean_financial_file(df):
             df[type_col]
             .apply(normalize_transaction_type)
         )
+    
+    elif category_col:
+        cleaned_df["transaction_type"] = (
+            df[category_col]
+            .apply(normalize_transaction_type)
+        )
 
     else:
 
