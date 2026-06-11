@@ -739,6 +739,14 @@ def render_dashboard_home():
             .sum()
         )
 
+        topup_filtered = (
+            filtered_df[
+                filtered_df["transaction_type"]
+                == "topup"
+            ]["amount"]
+            .sum()
+        )
+
         summary1, summary2, summary3, summary4 = st.columns(4)
 
         with summary1:
@@ -755,10 +763,9 @@ def render_dashboard_home():
 
         with summary3:
             st.metric(
-                "🏦 Balanced",
+                "🏦 Topup",
                 format_currency(
-                    income_filtered -
-                    expense_filtered
+                    topup_filtered
                 )
             )
 
